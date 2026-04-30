@@ -301,7 +301,13 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                       </Button>
                     )}
                     <Button variant="secondary" size="lg" fullWidth className="gap-2"
-                      onClick={() => addToast('Funcție disponibilă în curând!', 'info')}>
+                      onClick={async () => {
+                        if (!currentUserId) { addToast('Trebuie să fii autentificat pentru a trimite mesaje.', 'error'); return; }
+                        if (currentUserId === ad.seller.id) { addToast('Nu poți trimite mesaj propriului anunț.', 'info'); return; }
+                        const { data: convId, error } = await supabase.rpc('start_conversation', { p_ad_id: id });
+                        if (error || !convId) { addToast('Eroare la deschiderea conversației.', 'error'); return; }
+                        router.push(`/mesaje?conv=${convId}`);
+                      }}>
                       <MessageCircle className="w-5 h-5" /> Trimite mesaj
                     </Button>
                   </div>
