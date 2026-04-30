@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Tag, FileText, ImagePlus, DollarSign, Check,
@@ -8,6 +8,7 @@ import {
 import Button from '@/components/ui/Button';
 import { CATEGORIES } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 const STEPS = [
   { id: 1, label: 'Categorie', icon: <Tag className="w-5 h-5" /> },
@@ -26,12 +27,19 @@ const CONDITIONS = [
 
 const CITIES = ['București', 'Cluj-Napoca', 'Timișoara', 'Iași', 'Brașov', 'Constanța', 'Sibiu', 'Craiova', 'Galați', 'Oradea', 'Bacău', 'Arad', 'Ploiești', 'Pitești'];
 
+const CAT_ICONS: Record<string, string> = {
+  'Laptop': '💻', 'Car': '🚗', 'Home': '🏠', 'Shirt': '👗',
+  'Sofa': '🛋️', 'Dumbbell': '🏋️', 'Baby': '🧸', 'PawPrint': '🐾',
+  'Wrench': '🔧',
+};
+
 interface FormData {
   category: string;
   title: string;
   condition: string;
   description: string;
-  images: string[];
+  imageFiles: File[];
+  imageUrls: string[];
   price: string;
   negotiable: boolean;
   city: string;
@@ -41,63 +49,121 @@ interface FormData {
 
 const EMPTY_FORM: FormData = {
   category: '', title: '', condition: '', description: '',
-  images: [], price: '', negotiable: false, city: '', location: '', phone: '',
+  imageFiles: [], imageUrls: [],
+  price: '', negotiable: false, city: '', location: '', phone: '',
 };
-
-const PLACEHOLDER_IMAGES = [
-  'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&auto=format',
-  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&auto=format',
-  'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&auto=format',
-];
 
 export default function PostPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
-  const [published, setPublished] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
+  const [publishedId, setPublishedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
 
-  const set = (key: keyof FormData, value: string | boolean | string[]) =>
+  const set = (key: keyof FormData, value: unknown) =>
     setForm((p) => ({ ...p, [key]: value }));
 
   const validate = (): boolean => {
-    const newErrors: typeof errors = {};
-    if (step === 1 && !form.category) newErrors.category = 'Hopa, alege o categorie 🙂';
+    const e: typeof errors = {};
+    if (step === 1 && !form.category) e.category = 'Hopa, alege o categorie 🙂';
     if (step === 2) {
-      if (!form.title || form.title.length < 5) newErrors.title = 'Titlul trebuie să aibă cel puțin 5 caractere.';
-      if (!form.condition) newErrors.condition = 'Selectează starea produsului.';
-      if (!form.description || form.description.length < 20) newErrors.description = 'Adaugă o descriere mai detaliată (min. 20 caractere).';
+      if (!form.title || form.title.length < 5) e.title = 'Titlul trebuie să aibă cel puțin 5 caractere.';
+      if (!form.condition) e.condition = 'Selectează starea produsului.';
+      if (!form.description || form.description.length < 20) e.description = 'Adaugă o descriere mai detaliată (min. 20 caractere).';
     }
-    if (step === 3 && form.images.length === 0) newErrors.images = 'Adaugă cel puțin o fotografie 📸';
+    if (step === 3 && form.imageUrls.length === 0) e.images = 'Adaugă cel puțin o fotografie 📸';
     if (step === 4) {
-      if (!form.price || isNaN(Number(form.price)) || Number(form.price) <= 0) newErrors.price = 'Introdu un preț valid.';
-      if (!form.city) newErrors.city = 'Alege un oraș.';
+      if (!form.price || isNaN(Number(form.price)) || Number(form.price) <= 0) e.price = 'Introdu un preț valid.';
+      if (!form.city) e.city = 'Alege un oraș.';
     }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
   const next = () => { if (validate()) setStep((s) => s + 1); };
   const prev = () => setStep((s) => s - 1);
 
-  const handlePublish = async () => {
-    if (!validate()) return;
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setLoading(false);
-    setPublished(true);
-  };
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const remaining = 10 - form.imageUrls.length;
+    const toProcess = files.slice(0, remaining);
 
-  const addDemoImage = () => {
-    const idx = form.images.length % PLACEHOLDER_IMAGES.length;
-    set('images', [...form.images, PLACEHOLDER_IMAGES[idx]]);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setErrors({ images: 'Trebuie să fii autentificat pentru a încărca imagini.' }); return; }
+
+    for (let i = 0; i < toProcess.length; i++) {
+      const file = toProcess[i];
+      const idx = form.imageUrls.length + i;
+      setUploadingIdx(idx);
+
+      const ext = file.name.split('.').pop();
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+      const { error } = await supabase.storage.from('ad-images').upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage.from('ad-images').getPublicUrl(path);
+        set('imageUrls', [...form.imageUrls, publicUrl]);
+        setErrors((p) => ({ ...p, images: undefined }));
+      }
+    }
+    setUploadingIdx(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const removeImage = (i: number) =>
-    set('images', form.images.filter((_, idx) => idx !== i));
+    set('imageUrls', form.imageUrls.filter((_, idx) => idx !== i));
 
-  if (published) {
+  const handlePublish = async () => {
+    if (!validate()) return;
+    setLoading(true);
+
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.push('/login?redirect=/postare');
+      return;
+    }
+
+    const { data, error } = await supabase.from('ads').insert({
+      title: form.title,
+      description: form.description,
+      price: Number(form.price),
+      negotiable: form.negotiable,
+      category_id: form.category,
+      condition: form.condition,
+      images: form.imageUrls,
+      city: form.city,
+      location: form.location || null,
+      seller_id: user.id,
+      status: 'activ',
+    }).select('id').single();
+
+    if (error) {
+      setErrors({ submit: error.message });
+      setLoading(false);
+      return;
+    }
+
+    // Update seller phone if provided
+    if (form.phone) {
+      await supabase.from('profiles').update({ phone: form.phone }).eq('id', user.id);
+    }
+
+    setPublishedId(data.id);
+    setLoading(false);
+  };
+
+  if (publishedId) {
     return (
       <div className="max-w-lg mx-auto px-4 py-20 text-center">
         <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
@@ -107,10 +173,10 @@ export default function PostPage() {
         <p className="text-slate-500 mb-2">Anunțul tău pentru <strong className="text-slate-800">{form.title}</strong> este acum live.</p>
         <p className="text-slate-400 text-sm mb-8">Mii de cumpărători îl pot vedea deja.</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={() => router.push('/anunturi/a1')} variant="primary" size="lg">
+          <Button onClick={() => router.push(`/anunturi/${publishedId}`)} variant="primary" size="lg">
             <Sparkles className="w-4 h-4" /> Vezi anunțul
           </Button>
-          <Button onClick={() => { setForm(EMPTY_FORM); setStep(1); setPublished(false); }} variant="secondary" size="lg">
+          <Button onClick={() => { setForm(EMPTY_FORM); setStep(1); setPublishedId(null); }} variant="secondary" size="lg">
             Postează altul
           </Button>
         </div>
@@ -125,7 +191,7 @@ export default function PostPage() {
         <p className="text-slate-500 text-sm">Gratuit · Durează sub 2 minute</p>
       </div>
 
-      {/* Progress bar */}
+      {/* Progress */}
       <div className="mb-8">
         <div className="flex items-center gap-0">
           {STEPS.map((s, i) => (
@@ -169,15 +235,11 @@ export default function PostPage() {
                   onClick={() => { set('category', cat.id); setErrors({}); }}
                   className={cn(
                     'p-4 rounded-2xl border-2 text-left transition-all',
-                    form.category === cat.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    form.category === cat.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                   )}
                 >
                   <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center mb-2.5', cat.color)}>
-                    <span className="text-lg">
-                      {cat.icon === 'Laptop' ? '💻' : cat.icon === 'Car' ? '🚗' : cat.icon === 'Home' ? '🏠' : cat.icon === 'Shirt' ? '👗' : cat.icon === 'Sofa' ? '🛋️' : cat.icon === 'Dumbbell' ? '🏋️' : cat.icon === 'Baby' ? '🧸' : cat.icon === 'PawPrint' ? '🐾' : cat.icon === 'Wrench' ? '🔧' : '📦'}
-                    </span>
+                    <span className="text-lg">{CAT_ICONS[cat.icon] ?? '📦'}</span>
                   </div>
                   <p className="font-semibold text-slate-800 text-sm">{cat.name}</p>
                 </button>
@@ -193,41 +255,25 @@ export default function PostPage() {
               <h2 className="text-lg font-bold text-slate-900 mb-1">Detalii produs</h2>
               <p className="text-sm text-slate-500">Descrie produsul cât mai complet.</p>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Titlu anunț <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => { set('title', e.target.value); setErrors((p) => ({ ...p, title: undefined })); }}
-                placeholder="Ex: iPhone 14 Pro Max 256GB – Space Black, ca nou"
-                maxLength={80}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Titlu anunț <span className="text-red-400">*</span></label>
+              <input type="text" value={form.title} onChange={(e) => { set('title', e.target.value); setErrors((p) => ({ ...p, title: undefined })); }}
+                placeholder="Ex: iPhone 14 Pro Max 256GB – Space Black, ca nou" maxLength={80}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
               <div className="flex justify-between mt-1">
                 {errors.title ? <ErrorMsg msg={errors.title} /> : <span />}
                 <span className="text-xs text-slate-400">{form.title.length}/80</span>
               </div>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Stare produs <span className="text-red-400">*</span>
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Stare produs <span className="text-red-400">*</span></label>
               {errors.condition && <ErrorMsg msg={errors.condition} />}
               <div className="grid grid-cols-1 gap-2">
                 {CONDITIONS.map((c) => (
                   <label key={c.value} className={cn('flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all', form.condition === c.value ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300')}>
-                    <input
-                      type="radio"
-                      name="condition"
-                      value={c.value}
-                      checked={form.condition === c.value}
+                    <input type="radio" name="condition" value={c.value} checked={form.condition === c.value}
                       onChange={() => { set('condition', c.value); setErrors((p) => ({ ...p, condition: undefined })); }}
-                      className="mt-0.5 text-blue-600 focus:ring-blue-500"
-                    />
+                      className="mt-0.5 text-blue-600 focus:ring-blue-500" />
                     <div>
                       <p className="font-semibold text-sm text-slate-800">{c.label}</p>
                       <p className="text-xs text-slate-500">{c.desc}</p>
@@ -236,19 +282,11 @@ export default function PostPage() {
                 ))}
               </div>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Descriere <span className="text-red-400">*</span>
-              </label>
-              <textarea
-                value={form.description}
-                onChange={(e) => { set('description', e.target.value); setErrors((p) => ({ ...p, description: undefined })); }}
-                placeholder="Descrie starea produsului, ce include, motivul vânzării..."
-                rows={5}
-                maxLength={2000}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Descriere <span className="text-red-400">*</span></label>
+              <textarea value={form.description} onChange={(e) => { set('description', e.target.value); setErrors((p) => ({ ...p, description: undefined })); }}
+                placeholder="Descrie starea produsului, ce include, motivul vânzării..." rows={5} maxLength={2000}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
               <div className="flex justify-between mt-1">
                 {errors.description ? <ErrorMsg msg={errors.description} /> : <span />}
                 <span className="text-xs text-slate-400">{form.description.length}/2000</span>
@@ -264,27 +302,36 @@ export default function PostPage() {
             <p className="text-sm text-slate-500 mb-5">Anunțurile cu poze se vând de 5× mai repede. Adaugă până la 10 fotografii.</p>
             {errors.images && <ErrorMsg msg={errors.images} className="mb-3" />}
 
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+            />
+
             <div className="grid grid-cols-3 gap-3 mb-4">
-              {form.images.map((img, i) => (
+              {form.imageUrls.map((img, i) => (
                 <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                   <img src={img} alt={`Fotografie ${i + 1}`} className="w-full h-full object-cover" />
                   {i === 0 && (
                     <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">Principală</span>
                   )}
-                  <button
-                    onClick={() => removeImage(i)}
-                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition"
-                    aria-label="Șterge fotografia"
-                  >
+                  <button onClick={() => removeImage(i)}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))}
-              {form.images.length < 10 && (
-                <button
-                  onClick={addDemoImage}
-                  className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-blue-400 bg-slate-50 hover:bg-blue-50 flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-blue-500 transition-all"
-                >
+              {uploadingIdx !== null && (
+                <div className="aspect-square rounded-xl border-2 border-blue-300 bg-blue-50 flex items-center justify-center">
+                  <div className="animate-spin w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full" />
+                </div>
+              )}
+              {form.imageUrls.length < 10 && uploadingIdx === null && (
+                <button onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-blue-400 bg-slate-50 hover:bg-blue-50 flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-blue-500 transition-all">
                   <Upload className="w-6 h-6" />
                   <span className="text-xs font-medium">Adaugă foto</span>
                 </button>
@@ -292,8 +339,7 @@ export default function PostPage() {
             </div>
 
             <p className="text-xs text-slate-400 bg-slate-50 rounded-xl px-4 py-3">
-              💡 <strong>Sfat:</strong> Poza principală apare în listing. Folosește poze luminoase, din mai multe unghiuri.
-              <br /><span className="text-blue-500">(Demo: apasă butonul de mai sus pentru a adăuga imagini placeholder)</span>
+              💡 <strong>Sfat:</strong> Poza principală apare în listing. Folosește poze luminoase, din mai multe unghiuri. JPG/PNG/WebP, max 10MB per poză.
             </p>
           </div>
         )}
@@ -305,26 +351,17 @@ export default function PostPage() {
               <h2 className="text-lg font-bold text-slate-900 mb-1">Preț și publicare</h2>
               <p className="text-sm text-slate-500">Ultimul pas! Setează prețul și publică.</p>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Preț (RON) <span className="text-red-400">*</span>
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Preț (RON) <span className="text-red-400">*</span></label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-500">RON</span>
-                <input
-                  type="number"
-                  value={form.price}
-                  onChange={(e) => { set('price', e.target.value); setErrors((p) => ({ ...p, price: undefined })); }}
-                  placeholder="0"
-                  min={1}
-                  className="w-full pl-14 pr-4 py-3 rounded-xl border border-slate-200 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
+                <input type="number" value={form.price} onChange={(e) => { set('price', e.target.value); setErrors((p) => ({ ...p, price: undefined })); }}
+                  placeholder="0" min={1}
+                  className="w-full pl-14 pr-4 py-3 rounded-xl border border-slate-200 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
               </div>
               {errors.price && <ErrorMsg msg={errors.price} />}
             </div>
-
-            <label className="flex items-center gap-3 cursor-pointer group">
+            <label className="flex items-center gap-3 cursor-pointer">
               <div className={cn('relative w-11 h-6 rounded-full transition-colors', form.negotiable ? 'bg-blue-600' : 'bg-slate-300')}>
                 <div className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform', form.negotiable ? 'translate-x-5' : 'translate-x-0.5')} />
                 <input type="checkbox" className="sr-only" checked={form.negotiable} onChange={(e) => set('negotiable', e.target.checked)} />
@@ -334,15 +371,11 @@ export default function PostPage() {
                 <p className="text-xs text-slate-500">Cumpărătorii pot face oferte</p>
               </div>
             </label>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Oraș <span className="text-red-400">*</span></label>
-                <select
-                  value={form.city}
-                  onChange={(e) => { set('city', e.target.value); setErrors((p) => ({ ...p, city: undefined })); }}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
+                <select value={form.city} onChange={(e) => { set('city', e.target.value); setErrors((p) => ({ ...p, city: undefined })); }}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="">Selectează...</option>
                   {CITIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
@@ -350,44 +383,33 @@ export default function PostPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Cartier / zonă</label>
-                <input
-                  type="text"
-                  value={form.location}
-                  onChange={(e) => set('location', e.target.value)}
+                <input type="text" value={form.location} onChange={(e) => set('location', e.target.value)}
                   placeholder="Ex: Florești"
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Număr de telefon</label>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => set('phone', e.target.value)}
+              <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)}
                 placeholder="07xx xxx xxx"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-              />
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
               <p className="text-xs text-slate-400 mt-1">Vizibil doar pentru cumpărătorii interesați.</p>
             </div>
-
-            {/* Summary */}
             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
               <p className="text-sm font-semibold text-slate-700 mb-3">Sumar anunț</p>
               <div className="flex flex-col gap-1.5 text-sm">
                 <Row label="Categorie" value={CATEGORIES.find((c) => c.id === form.category)?.name || '—'} />
                 <Row label="Titlu" value={form.title || '—'} />
                 <Row label="Stare" value={form.condition || '—'} />
-                <Row label="Fotografii" value={`${form.images.length} foto`} />
+                <Row label="Fotografii" value={`${form.imageUrls.length} foto`} />
                 <Row label="Preț" value={form.price ? `${Number(form.price).toLocaleString('ro-RO')} RON${form.negotiable ? ' (negociabil)' : ''}` : '—'} />
                 <Row label="Locație" value={form.city || '—'} />
               </div>
             </div>
+            {errors.submit && <ErrorMsg msg={errors.submit} />}
           </div>
         )}
 
-        {/* Navigation */}
         <div className={cn('flex gap-3 mt-6 pt-5 border-t border-slate-100', step === 1 ? 'justify-end' : 'justify-between')}>
           {step > 1 && (
             <Button variant="secondary" onClick={prev} className="gap-1.5">
@@ -406,7 +428,6 @@ export default function PostPage() {
         </div>
       </div>
 
-      {/* Auto-save hint */}
       <p className="text-center text-xs text-slate-400 mt-4">💾 Progresul tău este salvat automat</p>
     </div>
   );
