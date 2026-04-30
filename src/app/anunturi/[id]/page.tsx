@@ -69,30 +69,69 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from('ads_with_seller')
+      // Fetch the ad directly from the ads table
+      const { data: adRow, error: adErr } = await supabase
+        .from('ads')
         .select('*')
         .eq('id', id)
         .single();
 
-      if (!data) { setLoading(false); return; }
+      if (adErr || !adRow) { setLoading(false); return; }
 
-      const mapped = mapAd(data as Record<string, unknown>);
+      // Fetch seller profile separately
+      const { data: profileRow } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url, phone, rating, review_count, verified')
+        .eq('id', adRow.seller_id)
+        .single();
+
+      const combined = {
+        ...adRow,
+        seller_id: adRow.seller_id,
+        seller_name: profileRow?.name ?? 'Utilizator',
+        seller_avatar: profileRow?.avatar_url ?? null,
+        seller_phone: profileRow?.phone ?? null,
+        seller_rating: profileRow?.rating ?? 5,
+        seller_review_count: profileRow?.review_count ?? 0,
+        seller_verified: profileRow?.verified ?? false,
+      };
+
+      const mapped = mapAd(combined as Record<string, unknown>);
       setAd(mapped);
 
       // Increment views
-      supabase.from('ads').update({ views: (data.views || 0) + 1 }).eq('id', id);
+      supabase.from('ads').update({ views: (adRow.views || 0) + 1 }).eq('id', id);
 
       // Load related ads
       const { data: relData } = await supabase
-        .from('ads_with_seller')
+        .from('ads')
         .select('*')
-        .eq('category_id', data.category_id)
+        .eq('category_id', adRow.category_id)
         .eq('status', 'activ')
         .neq('id', id)
         .limit(4);
 
-      setRelated((relData || []).map(r => mapAd(r as Record<string, unknown>)));
+      if (relData && relData.length > 0) {
+        const sellerIds = [...new Set(relData.map(r => r.seller_id as string))];
+        const { data: relProfiles } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url, rating, review_count, verified')
+          .in('id', sellerIds);
+        const profMap = Object.fromEntries((relProfiles || []).map(p => [p.id, p]));
+        setRelated(relData.map(r => {
+          const sp = profMap[r.seller_id as string];
+          return mapAd({
+            ...r,
+            seller_id: r.seller_id,
+            seller_name: sp?.name ?? 'Utilizator',
+            seller_avatar: sp?.avatar_url ?? null,
+            seller_rating: sp?.rating ?? 5,
+            seller_review_count: sp?.review_count ?? 0,
+            seller_verified: sp?.verified ?? false,
+          } as Record<string, unknown>);
+        }));
+      }
+
       setLoading(false);
     }
     load();
