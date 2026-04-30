@@ -196,11 +196,8 @@ export default function ProfilePage() {
   };
 
   const updateAdStatus = async (adId: string, status: 'vandut' | 'activ') => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-    const { data, error } = await supabase
-      .from('ads').update({ status }).eq('id', adId).eq('seller_id', user.id).select('id');
-    return !error && data && data.length > 0;
+    const { data: ok, error } = await supabase.rpc('update_ad_status', { p_id: adId, p_status: status });
+    return !error && ok === true;
   };
 
   const handleMarkSold = async (adId: string) => {

@@ -101,27 +101,25 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
     if (!validate()) return;
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/login'); return; }
-
-      const { data, error } = await supabase.from('ads').update({
-        title,
-        description,
-        condition,
-        category_id: category,
-        price: Number(price),
-        negotiable,
-        city,
-        location: location || null,
-        images: imageUrls,
-      }).eq('id', id).eq('seller_id', user.id).select('id');
+      const { data: ok, error } = await supabase.rpc('update_own_ad', {
+        p_id: id,
+        p_title: title,
+        p_description: description,
+        p_condition: condition,
+        p_category_id: category,
+        p_price: Number(price),
+        p_negotiable: negotiable,
+        p_city: city,
+        p_location: location || null,
+        p_images: imageUrls,
+      });
 
       if (error) {
-        setErrors({ submit: `Eroare Supabase: ${error.message}` });
+        setErrors({ submit: `Eroare: ${error.message}` });
         setSaving(false);
         return;
       }
-      if (!data || data.length === 0) {
+      if (!ok) {
         setErrors({ submit: 'Nu ai permisiunea să editezi acest anunț.' });
         setSaving(false);
         return;
