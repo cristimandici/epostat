@@ -1,11 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   BadgeCheck, Star, Edit3, Package, TrendingDown,
   Heart, ChevronRight, Plus, ShieldCheck, Phone, Mail,
-  Save, X, LogOut,
+  Save, X, LogOut, Upload, Clock,
 } from 'lucide-react';
 import AdCard from '@/components/ads/AdCard';
 import Button from '@/components/ui/Button';
@@ -86,6 +86,10 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', phone: '', city: '' });
   const [saving, setSaving] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifyStatus, setVerifyStatus] = useState<'none' | 'pending' | 'verified'>('none');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const verifyInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function load() {
@@ -110,6 +114,12 @@ export default function ProfilePage() {
         phone: prof?.phone || '',
         city: prof?.city || '',
       });
+
+      if (prof?.verified) {
+        setVerifyStatus('verified');
+      } else if (localStorage.getItem(`epostat_id_pending_${user.id}`) === 'true') {
+        setVerifyStatus('pending');
+      }
 
       const sellerMeta = {
         seller_id: user.id,
@@ -155,6 +165,24 @@ export default function ProfilePage() {
     await supabase.auth.signOut();
     router.push('/');
     router.refresh();
+  };
+
+  const handleVerifyUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setVerifyLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setVerifyLoading(false); return; }
+    const ext = file.name.split('.').pop();
+    const path = `verificare/${user.id}/id.${ext}`;
+    const { error } = await supabase.storage.from('ad-images').upload(path, file, { upsert: true });
+    if (!error) {
+      localStorage.setItem(`epostat_id_pending_${user.id}`, 'true');
+      setVerifyStatus('pending');
+      setVerifyOpen(false);
+    }
+    setVerifyLoading(false);
+    if (verifyInputRef.current) verifyInputRef.current.value = '';
   };
 
   if (loading) {
@@ -257,18 +285,76 @@ export default function ProfilePage() {
             </div>
 
             <div className="mt-5 pt-5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { icon: <Mail className="w-4 h-4" />, label: 'Email verificat', done: emailVerified },
-                { icon: <Phone className="w-4 h-4" />, label: 'Telefon adăugat', done: phoneVerified },
-                { icon: <ShieldCheck className="w-4 h-4" />, label: 'Identitate verificată', done: !!(profile?.verified) },
-              ].map(({ icon, label, done }) => (
-                <div key={label} className={cn('flex items-center gap-2 px-3 py-2 rounded-xl text-sm', done ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-500')}>
-                  {icon}
-                  <span className="font-medium">{label}</span>
-                  {done ? <BadgeCheck className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto text-slate-400" />}
-                </div>
-              ))}
+              <div className={cn('flex items-center gap-2 px-3 py-2 rounded-xl text-sm', emailVerified ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-500')}>
+                <Mail className="w-4 h-4" />
+                <span className="font-medium">Email verificat</span>
+                {emailVerified ? <BadgeCheck className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto text-slate-400" />}
+              </div>
+              <div className={cn('flex items-center gap-2 px-3 py-2 rounded-xl text-sm', phoneVerified ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-500')}>
+                <Phone className="w-4 h-4" />
+                <span className="font-medium">Telefon adăugat</span>
+                {phoneVerified ? <BadgeCheck className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto text-slate-400" />}
+              </div>
+              <button
+                onClick={() => { if (verifyStatus === 'none') setVerifyOpen(v => !v); }}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-left transition',
+                  verifyStatus === 'verified' ? 'bg-green-50 text-green-700' :
+                  verifyStatus === 'pending' ? 'bg-amber-50 text-amber-700' :
+                  'bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600 cursor-pointer'
+                )}>
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span className="font-medium">
+                  {verifyStatus === 'verified' ? 'Identitate verificată' :
+                   verifyStatus === 'pending' ? 'În verificare' :
+                   'Verifică identitatea'}
+                </span>
+                {verifyStatus === 'verified' ? <BadgeCheck className="w-4 h-4 ml-auto" /> :
+                 verifyStatus === 'pending' ? <Clock className="w-4 h-4 ml-auto" /> :
+                 <ChevronRight className="w-4 h-4 ml-auto text-slate-400" />}
+              </button>
             </div>
+
+            {/* Identity verification panel */}
+            {verifyOpen && verifyStatus === 'none' && (
+              <div className="mt-4 p-4 rounded-2xl border border-blue-200 bg-blue-50">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">Verifică-ți identitatea</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Încarcă o fotografie clară a actului de identitate (față). Vom verifica în maxim 24h.</p>
+                  </div>
+                  <button onClick={() => setVerifyOpen(false)} className="text-slate-400 hover:text-slate-600 ml-3 shrink-0">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <input
+                  ref={verifyInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleVerifyUpload}
+                />
+                <button
+                  onClick={() => verifyInputRef.current?.click()}
+                  disabled={verifyLoading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
+                  {verifyLoading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                  {verifyLoading ? 'Se încarcă...' : 'Alege document'}
+                </button>
+                <p className="text-xs text-slate-400 mt-2">JPG, PNG sau WebP · Max 10MB · Datele sunt confidențiale</p>
+              </div>
+            )}
+
+            {verifyStatus === 'pending' && (
+              <div className="mt-4 p-3 rounded-2xl border border-amber-200 bg-amber-50 flex items-center gap-2 text-sm text-amber-700">
+                <Clock className="w-4 h-4 shrink-0" />
+                <span>Documentul tău a fost trimis. Vom verifica identitatea în maxim 24 de ore.</span>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Tag, FileText, ImagePlus, DollarSign, Check,
@@ -65,6 +65,18 @@ export default function PostPage() {
 
   const set = (key: keyof FormData, value: unknown) =>
     setForm((p) => ({ ...p, [key]: value }));
+
+  useEffect(() => {
+    async function prefillFromProfile() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('profiles').select('phone, city').eq('id', user.id).single();
+      if (data?.phone) set('phone', data.phone as string);
+      if (data?.city) set('city', data.city as string);
+    }
+    prefillFromProfile();
+  }, []);
 
   const validate = (): boolean => {
     const e: typeof errors = {};
