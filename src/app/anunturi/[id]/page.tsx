@@ -258,36 +258,54 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
             <div className="sticky top-20">
               {/* Price card */}
               <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
+                {ad.status === 'vandut' && (
+                  <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 border border-slate-200">
+                    <BadgeCheck className="w-5 h-5 text-slate-500 shrink-0" />
+                    <div>
+                      <p className="font-black text-slate-700 text-sm">Acest anunț a fost vândut</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Produsul nu mai este disponibil pentru cumpărare.</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-2 mb-3">
-                  <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-semibold', CONDITION_COLORS[ad.condition])}>
-                    {CONDITIONS[ad.condition]}
-                  </span>
-                  {ad.negotiable && <Badge variant="info">Negociabil</Badge>}
-                  {ad.urgent && <Badge variant="danger">Urgent</Badge>}
+                  {ad.status === 'vandut' ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-600">Vândut</span>
+                  ) : (
+                    <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-semibold', CONDITION_COLORS[ad.condition])}>
+                      {CONDITIONS[ad.condition]}
+                    </span>
+                  )}
+                  {ad.negotiable && ad.status !== 'vandut' && <Badge variant="info">Negociabil</Badge>}
+                  {ad.urgent && ad.status !== 'vandut' && <Badge variant="danger">Urgent</Badge>}
                 </div>
 
                 <h1 className="text-xl font-black text-slate-900 leading-tight mb-4">{ad.title}</h1>
 
                 <div className="mb-6">
-                  <p className="text-4xl font-black text-[#2563EB]">{formatPrice(ad.price)}</p>
-                  {ad.negotiable && (
+                  <p className={cn('text-4xl font-black', ad.status === 'vandut' ? 'text-slate-400 line-through' : 'text-[#2563EB]')}>
+                    {formatPrice(ad.price)}
+                  </p>
+                  {ad.negotiable && ad.status !== 'vandut' && (
                     <p className="text-sm text-slate-500 mt-1 flex items-center gap-1">
                       <TrendingDown className="w-3.5 h-3.5" /> Prețul e negociabil
                     </p>
                   )}
                 </div>
 
-                <div className="flex flex-col gap-3">
-                  {ad.negotiable && (
-                    <Button variant="outline" size="lg" fullWidth className="gap-2" onClick={() => setOfferOpen(true)}>
-                      <TrendingDown className="w-5 h-5" /> Fă o ofertă
+                {ad.status !== 'vandut' && (
+                  <div className="flex flex-col gap-3">
+                    {ad.negotiable && (
+                      <Button variant="outline" size="lg" fullWidth className="gap-2" onClick={() => setOfferOpen(true)}>
+                        <TrendingDown className="w-5 h-5" /> Fă o ofertă
+                      </Button>
+                    )}
+                    <Button variant="secondary" size="lg" fullWidth className="gap-2"
+                      onClick={() => addToast('Funcție disponibilă în curând!', 'info')}>
+                      <MessageCircle className="w-5 h-5" /> Trimite mesaj
                     </Button>
-                  )}
-                  <Button variant="secondary" size="lg" fullWidth className="gap-2"
-                    onClick={() => addToast('Funcție disponibilă în curând!', 'info')}>
-                    <MessageCircle className="w-5 h-5" /> Trimite mesaj
-                  </Button>
-                </div>
+                  </div>
+                )}
 
                 <div className="mt-5 pt-5 border-t border-slate-100 flex flex-wrap gap-3 text-xs text-slate-500">
                   <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {timeAgo(ad.postedAt)}</span>

@@ -197,19 +197,37 @@ export default function ProfilePage() {
 
   const handleMarkSold = async (adId: string) => {
     setAdActionLoading(adId + '_sold');
-    await supabase.from('ads').update({ status: 'vandut' }).eq('id', adId);
-    const ad = myAds.find(a => a.id === adId);
-    if (ad) {
-      setMyAds(prev => prev.filter(a => a.id !== adId));
-      setSoldAds(prev => [{ ...ad, status: 'vandut' as Ad['status'] }, ...prev]);
+    const { error } = await supabase.from('ads').update({ status: 'vandut' }).eq('id', adId);
+    if (!error) {
+      const ad = myAds.find(a => a.id === adId);
+      if (ad) {
+        setMyAds(prev => prev.filter(a => a.id !== adId));
+        setSoldAds(prev => [{ ...ad, status: 'vandut' as Ad['status'] }, ...prev]);
+      }
+    }
+    setAdActionLoading(null);
+  };
+
+  const handleReactivate = async (adId: string) => {
+    setAdActionLoading(adId + '_reactivate');
+    const { error } = await supabase.from('ads').update({ status: 'activ' }).eq('id', adId);
+    if (!error) {
+      const ad = soldAds.find(a => a.id === adId);
+      if (ad) {
+        setSoldAds(prev => prev.filter(a => a.id !== adId));
+        setMyAds(prev => [{ ...ad, status: 'activ' as Ad['status'] }, ...prev]);
+      }
     }
     setAdActionLoading(null);
   };
 
   const handleDelete = async (adId: string) => {
     setAdActionLoading(adId + '_delete');
-    await supabase.from('ads').delete().eq('id', adId);
-    setMyAds(prev => prev.filter(a => a.id !== adId));
+    const { error } = await supabase.from('ads').delete().eq('id', adId);
+    if (!error) {
+      setMyAds(prev => prev.filter(a => a.id !== adId));
+      setSoldAds(prev => prev.filter(a => a.id !== adId));
+    }
     setConfirmDeleteId(null);
     setAdActionLoading(null);
   };
@@ -536,7 +554,38 @@ export default function ProfilePage() {
       {tab === 'sold' && (
         soldAds.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {soldAds.map(ad => <AdCard key={ad.id} ad={ad} />)}
+            {soldAds.map(ad => (
+              <div key={ad.id} className="flex flex-col gap-2">
+                <AdCard ad={ad} />
+                <div className="flex gap-1.5 px-1">
+                  <button
+                    onClick={() => handleReactivate(ad.id)}
+                    disabled={adActionLoading === ad.id + '_reactivate'}
+                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-xs font-medium hover:bg-blue-50 transition disabled:opacity-50">
+                    <Package className="w-3 h-3" />
+                    {adActionLoading === ad.id + '_reactivate' ? '...' : 'Reactivează'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteId(ad.id)}
+                    className="px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 text-xs font-medium hover:bg-red-50 transition">
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+                {confirmDeleteId === ad.id && (
+                  <div className="flex gap-1.5 px-1">
+                    <span className="text-xs text-slate-500 flex-1 flex items-center">Sigur ștergi?</span>
+                    <button onClick={() => handleDelete(ad.id)} disabled={adActionLoading === ad.id + '_delete'}
+                      className="px-2 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition disabled:opacity-50">
+                      {adActionLoading === ad.id + '_delete' ? '...' : 'Șterge'}
+                    </button>
+                    <button onClick={() => setConfirmDeleteId(null)}
+                      className="px-2 py-1 rounded-lg bg-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-300 transition">
+                      Nu
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         ) : (
           <EmptyState emoji="🎉" title="Niciun produs vândut încă"

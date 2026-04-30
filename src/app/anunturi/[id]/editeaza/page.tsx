@@ -110,11 +110,10 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
       city,
       location: location || null,
       images: imageUrls,
-      updated_at: new Date().toISOString(),
     }).eq('id', id);
 
     if (error) {
-      setErrors({ submit: error.message });
+      setErrors({ submit: `Eroare la salvare: ${error.message}` });
       setSaving(false);
       return;
     }
