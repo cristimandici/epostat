@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Send, Search, BadgeCheck, ArrowLeft, MessageCircle, ImagePlus, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Send, Search, BadgeCheck, ArrowLeft, MessageCircle, ImagePlus, Trash2, X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { timeAgo } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -59,6 +59,7 @@ function MessagesContent() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const [pendingDeleteMsg, setPendingDeleteMsg] = useState<Message | null>(null);
+  const [contextMenuMsg, setContextMenuMsg] = useState<Message | null>(null);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const touchStartX = useRef(0);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -313,7 +314,7 @@ function MessagesContent() {
   };
 
   const startLongPress = (msg: Message) => {
-    longPressTimer.current = setTimeout(() => setPendingDeleteMsg(msg), 500);
+    longPressTimer.current = setTimeout(() => setContextMenuMsg(msg), 500);
   };
   const cancelLongPress = () => {
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
@@ -323,6 +324,22 @@ function MessagesContent() {
     const msg = pendingDeleteMsg;
     setPendingDeleteMsg(null);
     await deleteMessage(msg);
+  };
+
+  const saveImage = async (url: string) => {
+    setContextMenuMsg(null);
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objUrl;
+      a.download = `imagine-${Date.now()}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objUrl);
+    } catch { /* ignore */ }
   };
 
   const filteredConvs = conversations.filter(c =>
@@ -353,11 +370,11 @@ function MessagesContent() {
           <div
             key={msg.id}
             className={cn('flex items-end gap-2 group', isMe ? 'justify-end' : 'justify-start')}
-            onTouchStart={() => isMe && startLongPress(msg)}
+            onTouchStart={() => startLongPress(msg)}
             onTouchEnd={cancelLongPress}
             onTouchMove={cancelLongPress}
             onTouchCancel={cancelLongPress}
-            onContextMenu={e => isMe && e.preventDefault()}
+            onContextMenu={e => e.preventDefault()}
           >
             {!isMe && activeConv && (
               <Link href={`/utilizator/${otherId}`} className="shrink-0 mb-0.5" title={`Vezi profilul ${activeConv.other_name}`}>
@@ -399,7 +416,7 @@ function MessagesContent() {
                     }}
                     className="block w-full cursor-zoom-in"
                   >
-                    <img src={msg.media_url} alt="Imagine" className="max-w-full max-h-60 object-cover block" />
+                    <img src={msg.media_url} alt="Imagine" className="max-w-full max-h-60 object-cover block select-none" style={{ WebkitTouchCallout: 'none' } as React.CSSProperties} />
                   </button>
                   <p className={cn('text-xs px-3 py-1.5', isMe ? 'text-blue-200' : 'text-slate-400')}>
                     {timeAgo(msg.created_at)}
@@ -484,6 +501,45 @@ function MessagesContent() {
             className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
             onClick={e => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {/* ── CONTEXT MENU (mobile action sheet) ── */}
+      {contextMenuMsg && (
+        <div
+          className="fixed inset-0 z-[500] bg-black/40 backdrop-blur-sm flex items-end justify-center sm:items-center"
+          onClick={() => setContextMenuMsg(null)}
+        >
+          <div
+            className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xs overflow-hidden"
+            style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {contextMenuMsg.type === 'image' && contextMenuMsg.media_url && (
+              <button
+                onClick={() => saveImage(contextMenuMsg.media_url!)}
+                className="w-full px-5 py-4 flex items-center gap-3 text-slate-800 hover:bg-slate-50 text-sm font-medium border-b border-slate-100"
+              >
+                <Download className="w-5 h-5 text-slate-500" />
+                Salvează imaginea
+              </button>
+            )}
+            {contextMenuMsg.sender_id === userId && (
+              <button
+                onClick={() => { setContextMenuMsg(null); setPendingDeleteMsg(contextMenuMsg); }}
+                className="w-full px-5 py-4 flex items-center gap-3 text-red-500 hover:bg-red-50 text-sm font-medium border-b border-slate-100"
+              >
+                <Trash2 className="w-5 h-5" />
+                Șterge mesajul
+              </button>
+            )}
+            <button
+              onClick={() => setContextMenuMsg(null)}
+              className="w-full px-5 py-4 text-slate-500 hover:bg-slate-50 text-sm font-semibold"
+            >
+              Anulează
+            </button>
+          </div>
         </div>
       )}
 
