@@ -306,7 +306,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                         if (error) { addToast('Eroare: ' + error.message, 'error'); }
                         else { setIsFav(false); addToast('Eliminat din favorite', 'info'); }
                       } else {
-                        const { error } = await supabase.from('favorites').insert({ user_id: currentUserId, ad_id: id });
+                        const { error } = await supabase.from('favorites').upsert({ user_id: currentUserId, ad_id: id }, { onConflict: 'user_id,ad_id' });
                         if (error) { addToast('Eroare: ' + error.message, 'error'); }
                         else { setIsFav(true); addToast('Salvat la favorite!', 'success'); }
                       }

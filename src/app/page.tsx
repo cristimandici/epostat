@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search, ArrowRight, Star, Shield, Zap, TrendingUp,
   Laptop, Car, Home, Shirt, Sofa, Dumbbell, Baby, PawPrint, Wrench, MoreHorizontal,
@@ -8,7 +8,41 @@ import {
 } from 'lucide-react';
 import AdCard from '@/components/ads/AdCard';
 import Button from '@/components/ui/Button';
-import { DEMO_ADS, CATEGORIES } from '@/lib/data';
+import { CATEGORIES } from '@/lib/data';
+import { Ad } from '@/lib/types';
+import { createClient } from '@/lib/supabase/client';
+
+const PLACEHOLDER = 'https://images.unsplash.com/photo-1560343090-f0409e92791a?w=400&auto=format';
+
+function mapAd(row: Record<string, unknown>): Ad {
+  return {
+    id: row.id as string,
+    title: row.title as string,
+    price: Number(row.price),
+    negotiable: row.negotiable as boolean,
+    category: (row.category_id as string) || '',
+    condition: row.condition as Ad['condition'],
+    description: (row.description as string) || '',
+    images: (row.images as string[])?.length ? (row.images as string[]) : [PLACEHOLDER],
+    location: (row.location as string) || '',
+    city: (row.city as string) || '',
+    postedAt: row.created_at as string,
+    views: (row.views as number) || 0,
+    favorites: (row.favorites_count as number) || 0,
+    status: row.status as Ad['status'],
+    urgent: (row.urgent as boolean) || false,
+    seller: {
+      id: (row.seller_id as string) || '',
+      name: (row.seller_name as string) || 'Utilizator',
+      avatar: row.seller_avatar as string | undefined,
+      rating: Number(row.seller_rating) || 5,
+      reviewCount: (row.seller_review_count as number) || 0,
+      adsCount: 0,
+      memberSince: '',
+      verified: (row.seller_verified as boolean) || false,
+    },
+  };
+}
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   Laptop: <Laptop className="w-6 h-6" />,
@@ -32,8 +66,38 @@ const STATS = [
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const recentAds = DEMO_ADS.slice(0, 8);
-  const nearbyAds = DEMO_ADS.filter((a) => a.city === 'București' || a.city === 'Cluj-Napoca').slice(0, 4);
+  const [recentAds, setRecentAds] = useState<Ad[]>([]);
+  const [nearbyAds, setNearbyAds] = useState<Ad[]>([]);
+
+  useEffect(() => {
+    async function loadAds() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('ads')
+        .select('*')
+        .eq('status', 'activ')
+        .order('created_at', { ascending: false })
+        .limit(8);
+
+      if (!data || data.length === 0) return;
+
+      const sellerIds = [...new Set(data.map(r => r.seller_id as string))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url, rating, review_count, verified')
+        .in('id', sellerIds);
+      const profMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+
+      const ads = data.map(r => {
+        const sp = profMap[r.seller_id as string];
+        return mapAd({ ...r, seller_name: sp?.name ?? 'Utilizator', seller_avatar: sp?.avatar_url ?? null, seller_rating: sp?.rating ?? 5, seller_review_count: sp?.review_count ?? 0, seller_verified: sp?.verified ?? false } as Record<string, unknown>);
+      });
+
+      setRecentAds(ads);
+      setNearbyAds(ads.filter(a => a.city === 'București' || a.city === 'Cluj-Napoca').slice(0, 4));
+    }
+    loadAds();
+  }, []);
 
   return (
     <div className="flex flex-col">

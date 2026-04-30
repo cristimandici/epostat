@@ -134,10 +134,18 @@ export default function ProfilePage() {
       setMyAds(allAds.filter(a => a.status === 'activ').map(a => mapAd({ ...a, ...sellerMeta })));
       setSoldAds(allAds.filter(a => a.status === 'vandut').map(a => mapAd({ ...a, ...sellerMeta })));
 
-      const adIds = ((favIdsRes.data || []) as Record<string, unknown>[]).map(f => f.ad_id);
+      const adIds = ((favIdsRes.data || []) as Record<string, unknown>[]).map(f => f.ad_id as string);
       if (adIds.length > 0) {
-        const { data: favAds } = await supabase.from('ads_with_seller').select('*').in('id', adIds);
-        setFavorites((favAds || []).map(a => mapAd(a as Record<string, unknown>)));
+        const { data: favAds } = await supabase.from('ads').select('*').in('id', adIds);
+        const favSellerIds = [...new Set((favAds || []).map(a => a.seller_id as string))];
+        const { data: favProfiles } = favSellerIds.length > 0
+          ? await supabase.from('profiles').select('id, name, avatar_url, rating, review_count, verified').in('id', favSellerIds)
+          : { data: [] };
+        const favProfMap = Object.fromEntries((favProfiles || []).map(p => [p.id, p]));
+        setFavorites((favAds || []).map(a => {
+          const sp = favProfMap[a.seller_id as string];
+          return mapAd({ ...a, seller_id: a.seller_id, seller_name: sp?.name ?? 'Utilizator', seller_avatar: sp?.avatar_url ?? null, seller_rating: sp?.rating ?? 5, seller_review_count: sp?.review_count ?? 0, seller_verified: sp?.verified ?? false } as Record<string, unknown>);
+        }));
       }
 
       setOffers((offersRes.data || []) as typeof offers);
