@@ -212,16 +212,16 @@ export default function OffersPage() {
                         const evtIsBuyer = evt.by_user === 'buyer';
                         const isMe = (evtIsBuyer && iAmBuyer) || (!evtIsBuyer && !iAmBuyer);
                         return (
-                          <div key={evt.id} className={cn('flex', isMe ? 'justify-start' : 'justify-end')}>
+                          <div key={evt.id} className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
                             <div className={cn('max-w-[80%] px-4 py-2.5 rounded-2xl text-sm',
-                              isMe ? 'bg-slate-100 text-slate-800' : 'bg-blue-100 text-blue-800')}>
-                              <div className="flex items-center gap-1.5 mb-0.5 font-semibold text-xs opacity-70">
+                              isMe ? 'bg-[#2563EB] text-white rounded-br-sm' : 'bg-slate-100 text-slate-800 rounded-bl-sm')}>
+                              <div className={cn('flex items-center gap-1.5 mb-0.5 font-semibold text-xs', isMe ? 'opacity-70' : 'opacity-60')}>
                                 {evtIsBuyer ? 'Cumpărător' : 'Vânzător'} ·{' '}
                                 {evt.type === 'oferta' ? 'Ofertă' : evt.type === 'contraoferta' ? 'Contraofertă' : evt.type === 'acceptata' ? 'Acceptată' : 'Refuzată'}
                               </div>
                               {evt.amount && <p className="text-base font-black">{formatPrice(evt.amount)}</p>}
                               {evt.message && <p className="mt-0.5 opacity-90">{evt.message}</p>}
-                              <p className="text-xs opacity-50 mt-1">{timeAgo(evt.created_at)}</p>
+                              <p className={cn('text-xs mt-1', isMe ? 'opacity-50' : 'text-slate-400')}>{timeAgo(evt.created_at)}</p>
                             </div>
                           </div>
                         );

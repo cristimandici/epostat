@@ -46,7 +46,7 @@ function MessagesContent() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
   const [searchQuery, setSearchQuery] = useState('');
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const activeConv = conversations.find(c => c.id === activeId);
@@ -171,7 +171,8 @@ function MessagesContent() {
   }, [userId, loadConversations]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = messagesContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   const openConversation = (id: string) => {
@@ -228,7 +229,7 @@ function MessagesContent() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       <h1 className="text-2xl font-black text-slate-900 mb-6">Mesaje</h1>
 
-      <div className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm flex" style={{ height: '600px' }}>
+      <div className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm flex" style={{ height: 'min(600px, calc(100dvh - 180px))' }}>
         {/* Conversation list */}
         <div className={cn('w-full sm:w-72 border-r border-slate-200 flex flex-col shrink-0', mobileView === 'chat' && 'hidden sm:flex')}>
           <div className="p-3 border-b border-slate-100">
@@ -317,7 +318,7 @@ function MessagesContent() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
                 {messagesLoading ? (
                   <div className="flex-1 flex items-center justify-center">
                     <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
@@ -345,7 +346,6 @@ function MessagesContent() {
                     );
                   })
                 )}
-                <div ref={bottomRef} />
               </div>
 
               <div className="p-3 border-t border-slate-200 shrink-0">
@@ -357,7 +357,8 @@ function MessagesContent() {
                     onChange={e => setInput(e.target.value)}
                     placeholder="Scrie un mesaj..."
                     disabled={sending}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    style={{ fontSize: '16px' }}
                   />
                   <button
                     type="submit"

@@ -9,6 +9,7 @@ const inter = Inter({ subsets: ["latin"], display: "swap" });
 export const metadata: Metadata = {
   title: { default: "epostat.ro – Anunțuri online", template: "%s | epostat.ro" },
   description: "Piața ta online de anunțuri gratuite. Cumpără, vinde și negociează produse second-hand sau noi în România.",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
