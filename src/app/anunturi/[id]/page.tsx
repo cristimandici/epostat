@@ -108,13 +108,13 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
-        const { data: favRow } = await supabase
+        const { data: favRows } = await supabase
           .from('favorites')
           .select('id')
           .eq('user_id', user.id)
           .eq('ad_id', id)
-          .maybeSingle();
-        if (favRow) setIsFav(true);
+          .limit(1);
+        if (favRows && favRows.length > 0) setIsFav(true);
       }
 
       // Load related ads

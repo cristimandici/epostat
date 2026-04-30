@@ -400,7 +400,17 @@ export default function ProfilePage() {
           </div>
           {myAds.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {myAds.map(ad => <AdCard key={ad.id} ad={ad} />)}
+              {myAds.map(ad => (
+                <AdCard
+                  key={ad.id}
+                  ad={ad}
+                  favorited={favorites.some(f => f.id === ad.id)}
+                  onFavoriteToggle={(id, nowFav) => {
+                    if (nowFav) setFavorites(prev => prev.some(f => f.id === id) ? prev : [...prev, ad]);
+                    else setFavorites(prev => prev.filter(f => f.id !== id));
+                  }}
+                />
+              ))}
             </div>
           ) : (
             <EmptyState emoji="📦" title="Nu ai niciun anunț activ"
