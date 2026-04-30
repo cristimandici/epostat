@@ -137,7 +137,6 @@ function MessagesContent() {
 
     setMessages((data || []) as Message[]);
     setMessagesLoading(false);
-    scrollToBottom(150);
 
     await supabase.rpc('mark_conversation_read', { p_conversation_id: convId });
     setConversations(prev => prev.map(c => c.id === convId ? { ...c, my_unread: 0 } : c));
@@ -199,7 +198,10 @@ function MessagesContent() {
     return () => { supabase.removeChannel(channel); };
   }, [userId, loadConversations]);
 
-  useEffect(() => { scrollToBottom(); }, [messages]);
+  useEffect(() => {
+    if (messagesLoading) return;
+    scrollToBottom(300);
+  }, [messages, messagesLoading]);
 
   const imageMessages = messages.filter(m => m.type === 'image' && m.media_url);
 
