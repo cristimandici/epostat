@@ -394,17 +394,25 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
         askingPrice={ad.price}
         onSubmit={async (amount, message) => {
           if (!currentUserId || !ad) { addToast('Trebuie să fii autentificat.', 'error'); return; }
-          const { error } = await supabase.from('offers').insert({
+          const { data: offerRow, error } = await supabase.from('offers').insert({
             ad_id: id,
             buyer_id: currentUserId,
             seller_id: ad.seller.id,
             original_price: ad.price,
             current_amount: amount,
             status: 'asteptare',
-          });
+          }).select('id').single();
           if (error) {
             addToast('Eroare la trimiterea ofertei.', 'error');
           } else {
+            // Record initial offer event
+            await supabase.from('offer_events').insert({
+              offer_id: offerRow.id,
+              type: 'oferta',
+              amount,
+              message: message || null,
+              by_user: 'buyer',
+            });
             setOfferOpen(false);
             addToast('Oferta ta a fost trimisă vânzătorului!');
           }
