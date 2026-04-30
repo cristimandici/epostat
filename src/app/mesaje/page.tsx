@@ -30,7 +30,7 @@ interface Message {
   conversation_id: string;
   sender_id: string;
   text: string | null;
-  type?: 'text' | 'image';
+  type?: 'text' | 'image' | 'offer';
   media_url?: string | null;
   created_at: string;
 }
@@ -428,6 +428,7 @@ function MessagesContent() {
             <div className={cn(
               'max-w-[75%] rounded-2xl text-sm overflow-hidden',
               msg.type === 'image' ? '' : 'px-4 py-2.5',
+              msg.type === 'offer' && 'min-w-[160px]',
               isMe ? 'bg-[#2563EB] text-white rounded-br-sm' : 'bg-slate-100 text-slate-800 rounded-bl-sm'
             )}>
               {msg.type === 'image' && msg.media_url ? (
@@ -447,6 +448,12 @@ function MessagesContent() {
                     {timeAgo(msg.created_at)}
                   </p>
                 </div>
+              ) : msg.type === 'offer' ? (
+                <>
+                  <p className={cn('text-[10px] font-semibold uppercase tracking-wider mb-1', isMe ? 'text-blue-200' : 'text-slate-400')}>Ofertă</p>
+                  <p className="text-xl font-black leading-none">{Number(msg.text).toLocaleString('ro-RO')} lei</p>
+                  <p className={cn('text-xs mt-2', isMe ? 'text-blue-200' : 'text-slate-400')}>{timeAgo(msg.created_at)}</p>
+                </>
               ) : (
                 <>
                   <p className="break-words whitespace-pre-wrap">{msg.text}</p>
@@ -542,10 +549,16 @@ function MessagesContent() {
               <div className={cn(
                 'max-w-[80%] rounded-2xl text-sm shadow-2xl overflow-hidden',
                 contextMenuMsg.type !== 'image' && 'px-4 py-2.5',
+                contextMenuMsg.type === 'offer' && 'min-w-[160px]',
                 ctxIsMe ? 'bg-[#2563EB] text-white' : 'bg-white text-slate-800'
               )}>
                 {contextMenuMsg.type === 'image' && contextMenuMsg.media_url ? (
                   <img src={contextMenuMsg.media_url} alt="Imagine" className="max-w-full max-h-52 object-cover block" />
+                ) : contextMenuMsg.type === 'offer' ? (
+                  <>
+                    <p className={cn('text-[10px] font-semibold uppercase tracking-wider mb-1', ctxIsMe ? 'text-blue-200' : 'text-slate-400')}>Ofertă</p>
+                    <p className="text-xl font-black leading-none">{Number(contextMenuMsg.text).toLocaleString('ro-RO')} lei</p>
+                  </>
                 ) : (
                   <p className="break-words whitespace-pre-wrap">{contextMenuMsg.text}</p>
                 )}

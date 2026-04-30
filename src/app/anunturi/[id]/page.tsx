@@ -490,28 +490,26 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
         askingPrice={ad.price}
         onSubmit={async (amount, message) => {
           if (!currentUserId || !ad) { addToast('Trebuie să fii autentificat.', 'error'); return; }
-          const { data: offerRow, error } = await supabase.from('offers').insert({
-            ad_id: id,
-            buyer_id: currentUserId,
-            seller_id: ad.seller.id,
-            original_price: ad.price,
-            current_amount: amount,
-            status: 'asteptare',
-          }).select('id').single();
-          if (error) {
-            addToast('Eroare la trimiterea ofertei.', 'error');
-          } else {
-            // Record initial offer event
-            await supabase.from('offer_events').insert({
-              offer_id: offerRow.id,
-              type: 'oferta',
-              amount,
-              message: message || null,
-              by_user: 'buyer',
+          if (currentUserId === ad.seller.id) { addToast('Nu poți face ofertă la propriul anunț.', 'info'); return; }
+          const { data: convId, error: convErr } = await supabase.rpc('start_conversation', { p_ad_id: id });
+          if (convErr || !convId) { addToast('Eroare la deschiderea conversației.', 'error'); return; }
+          const { error: msgErr } = await supabase.rpc('send_message', {
+            p_conversation_id: convId,
+            p_text: String(amount),
+            p_type: 'offer',
+            p_media_url: null,
+          });
+          if (msgErr) { addToast('Eroare la trimiterea ofertei.', 'error'); return; }
+          if (message?.trim()) {
+            await supabase.rpc('send_message', {
+              p_conversation_id: convId,
+              p_text: message.trim(),
+              p_type: 'text',
+              p_media_url: null,
             });
-            setOfferOpen(false);
-            addToast('Oferta ta a fost trimisă vânzătorului!');
           }
+          setOfferOpen(false);
+          router.push(`/mesaje?conv=${convId}`);
         }}
       />
     </>
