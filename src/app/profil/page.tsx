@@ -174,8 +174,8 @@ export default function ProfilePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setVerifyLoading(false); return; }
     const ext = file.name.split('.').pop();
-    const path = `verificare/${user.id}/id.${ext}`;
-    const { error } = await supabase.storage.from('ad-images').upload(path, file, { upsert: true });
+    const path = `${user.id}/id.${ext}`;
+    const { error } = await supabase.storage.from('verification-docs').upload(path, file, { upsert: true });
     if (!error) {
       localStorage.setItem(`epostat_id_pending_${user.id}`, 'true');
       setVerifyStatus('pending');
