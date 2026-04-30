@@ -70,6 +70,7 @@ function MessagesContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const mobileMessagesContainerRef = useRef<HTMLDivElement>(null);
+  const convListRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -214,7 +215,18 @@ function MessagesContent() {
   const openConversation = (id: string) => {
     setActiveId(id);
     setMobileView('chat');
+    router.replace(`/mesaje?conv=${id}`, { scroll: false });
     setTimeout(() => mobileInputRef.current?.focus(), 150);
+  };
+
+  const goBackToList = () => {
+    setMobileView('list');
+    router.replace('/mesaje', { scroll: false });
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    setTimeout(() => {
+      const el = convListRef.current?.querySelector('[data-active="true"]') as HTMLElement | null;
+      el?.scrollIntoView({ block: 'center', behavior: 'instant' });
+    }, 50);
   };
 
   const sendMessage = async (fromMobile = false) => {
@@ -610,7 +622,7 @@ function MessagesContent() {
           <div className="shrink-0 px-4 border-b border-slate-200 bg-white flex items-center gap-3"
             style={{ paddingTop: 'max(12px, env(safe-area-inset-top))', paddingBottom: '12px' }}>
             <button
-              onClick={() => setMobileView('list')}
+              onClick={goBackToList}
               className="p-2 -ml-1 rounded-xl text-slate-500 hover:bg-slate-100 transition"
               aria-label="Înapoi"
             >
@@ -699,7 +711,7 @@ function MessagesContent() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div ref={convListRef} className="flex-1 overflow-y-auto">
               {filteredConvs.length === 0 ? (
                 <div className="p-8 text-center text-slate-400">
                   <MessageCircle className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -709,6 +721,7 @@ function MessagesContent() {
               ) : filteredConvs.map(conv => (
                 <button
                   key={conv.id}
+                  data-active={activeId === conv.id}
                   onClick={() => openConversation(conv.id)}
                   className={cn(
                     'w-full text-left p-4 flex gap-3 border-b border-slate-100 hover:bg-slate-50 transition',
