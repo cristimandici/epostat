@@ -350,9 +350,19 @@ export default function ProfilePage() {
             )}
 
             {verifyStatus === 'pending' && (
-              <div className="mt-4 p-3 rounded-2xl border border-amber-200 bg-amber-50 flex items-center gap-2 text-sm text-amber-700">
+              <div className="mt-4 p-3 rounded-2xl border border-amber-200 bg-amber-50 flex items-center gap-3 text-sm text-amber-700">
                 <Clock className="w-4 h-4 shrink-0" />
-                <span>Documentul tău a fost trimis. Vom verifica identitatea în maxim 24 de ore.</span>
+                <span className="flex-1">Documentul tău a fost trimis. Vom verifica identitatea în maxim 24 de ore.</span>
+                <button
+                  onClick={async () => {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) localStorage.removeItem(`epostat_id_pending_${user.id}`);
+                    setVerifyStatus('none');
+                    setVerifyOpen(true);
+                  }}
+                  className="text-xs font-semibold underline hover:no-underline shrink-0">
+                  Retrimite
+                </button>
               </div>
             )}
           </>
