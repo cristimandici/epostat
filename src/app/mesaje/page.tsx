@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Send, Search, BadgeCheck, ArrowLeft, MessageCircle } from 'lucide-react';
+import { Send, Search, BadgeCheck, ArrowLeft, MessageCircle, ImagePlus } from 'lucide-react';
 import { timeAgo } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -28,7 +28,9 @@ interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
-  text: string;
+  text: string | null;
+  type?: 'text' | 'image';
+  media_url?: string | null;
   created_at: string;
 }
 
@@ -54,6 +56,7 @@ function MessagesContent() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
@@ -62,6 +65,8 @@ function MessagesContent() {
   const mobileMessagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mobileFileInputRef = useRef<HTMLInputElement>(null);
 
   const activeConv = conversations.find(c => c.id === activeId);
 
@@ -201,6 +206,7 @@ function MessagesContent() {
         conversation_id: activeId,
         sender_id: userId,
         text,
+        type: 'text',
         created_at: new Date().toISOString(),
       };
       setMessages(prev => prev.some(m => m.id === tempMsg.id) ? prev : [...prev, tempMsg]);
@@ -211,6 +217,53 @@ function MessagesContent() {
     }
 
     setSending(false);
+    (fromMobile ? mobileInputRef : inputRef).current?.focus();
+  };
+
+  const handleImageUpload = async (file: File, fromMobile = false) => {
+    if (!activeId || uploadingImage) return;
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) return;
+
+    setUploadingImage(true);
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${userId}/${activeId}/${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('chat-images')
+      .upload(path, file, { cacheControl: '3600', upsert: false });
+
+    if (uploadError) { setUploadingImage(false); return; }
+
+    const { data: urlData } = supabase.storage.from('chat-images').getPublicUrl(path);
+    const publicUrl = urlData.publicUrl;
+
+    const { data: msgId, error } = await supabase.rpc('send_message', {
+      p_conversation_id: activeId,
+      p_text: null,
+      p_type: 'image',
+      p_media_url: publicUrl,
+    });
+
+    if (!error && msgId) {
+      const tempMsg: Message = {
+        id: msgId as string,
+        conversation_id: activeId,
+        sender_id: userId,
+        text: null,
+        type: 'image',
+        media_url: publicUrl,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => prev.some(m => m.id === tempMsg.id) ? prev : [...prev, tempMsg]);
+      setConversations(prev =>
+        prev.map(c => c.id === activeId ? { ...c, last_message: '📷 Imagine', last_message_at: new Date().toISOString() } : c)
+          .sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime())
+      );
+    }
+
+    setUploadingImage(false);
+    (fromMobile ? mobileFileInputRef : fileInputRef).current && ((fromMobile ? mobileFileInputRef : fileInputRef).current!.value = '');
     (fromMobile ? mobileInputRef : inputRef).current?.focus();
   };
 
@@ -252,13 +305,27 @@ function MessagesContent() {
               </Link>
             )}
             <div className={cn(
-              'max-w-[75%] px-4 py-2.5 rounded-2xl text-sm',
+              'max-w-[75%] rounded-2xl text-sm overflow-hidden',
+              msg.type === 'image' ? '' : 'px-4 py-2.5',
               isMe ? 'bg-[#2563EB] text-white rounded-br-sm' : 'bg-slate-100 text-slate-800 rounded-bl-sm'
             )}>
-              <p className="break-words whitespace-pre-wrap">{msg.text}</p>
-              <p className={cn('text-xs mt-1', isMe ? 'text-blue-200' : 'text-slate-400')}>
-                {timeAgo(msg.created_at)}
-              </p>
+              {msg.type === 'image' && msg.media_url ? (
+                <div>
+                  <a href={msg.media_url} target="_blank" rel="noopener noreferrer">
+                    <img src={msg.media_url} alt="Imagine" className="max-w-full max-h-60 object-cover block" />
+                  </a>
+                  <p className={cn('text-xs px-3 py-1.5', isMe ? 'text-blue-200' : 'text-slate-400')}>
+                    {timeAgo(msg.created_at)}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="break-words whitespace-pre-wrap">{msg.text}</p>
+                  <p className={cn('text-xs mt-1', isMe ? 'text-blue-200' : 'text-slate-400')}>
+                    {timeAgo(msg.created_at)}
+                  </p>
+                </>
+              )}
             </div>
           </div>
         );
@@ -311,7 +378,27 @@ function MessagesContent() {
             className="shrink-0 p-3 border-t border-slate-200 bg-white"
             style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
           >
+            <input
+              ref={mobileFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, true); }}
+            />
             <form onSubmit={e => { e.preventDefault(); sendMessage(true); }} className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => mobileFileInputRef.current?.click()}
+                disabled={uploadingImage || !activeId}
+                className="w-12 h-12 rounded-xl border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-50 disabled:opacity-40 transition shrink-0"
+                aria-label="Trimite imagine"
+              >
+                {uploadingImage ? (
+                  <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <ImagePlus className="w-5 h-5" />
+                )}
+              </button>
               <input
                 ref={mobileInputRef}
                 type="text"
@@ -416,7 +503,27 @@ function MessagesContent() {
                 </div>
 
                 <div className="p-3 border-t border-slate-200 shrink-0">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, false); }}
+                  />
                   <form onSubmit={e => { e.preventDefault(); sendMessage(false); }} className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingImage || !activeId}
+                      className="w-10 h-10 rounded-xl border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-50 disabled:opacity-40 transition shrink-0"
+                      aria-label="Trimite imagine"
+                    >
+                      {uploadingImage ? (
+                        <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <ImagePlus className="w-4 h-4" />
+                      )}
+                    </button>
                     <input
                       ref={inputRef}
                       type="text"
