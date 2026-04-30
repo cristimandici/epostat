@@ -63,6 +63,7 @@ function MessagesContent() {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const touchStartX = useRef(0);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressActivated = useRef(false);
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
@@ -314,7 +315,11 @@ function MessagesContent() {
   };
 
   const startLongPress = (msg: Message) => {
-    longPressTimer.current = setTimeout(() => setContextMenuMsg(msg), 500);
+    longPressActivated.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressActivated.current = true;
+      setContextMenuMsg(msg);
+    }, 500);
   };
   const cancelLongPress = () => {
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
@@ -369,7 +374,8 @@ function MessagesContent() {
         return (
           <div
             key={msg.id}
-            className={cn('flex items-end gap-2 group', isMe ? 'justify-end' : 'justify-start')}
+            className={cn('flex items-end gap-2 group select-none', isMe ? 'justify-end' : 'justify-start')}
+            style={{ WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
             onTouchStart={() => startLongPress(msg)}
             onTouchEnd={cancelLongPress}
             onTouchMove={cancelLongPress}
@@ -411,6 +417,7 @@ function MessagesContent() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (longPressActivated.current) { longPressActivated.current = false; return; }
                       const idx = imageMessages.findIndex(m => m.id === msg.id);
                       if (idx !== -1) setLightboxIdx(idx);
                     }}
