@@ -374,8 +374,7 @@ function MessagesContent() {
         return (
           <div
             key={msg.id}
-            className={cn('flex items-end gap-2 group select-none', isMe ? 'justify-end' : 'justify-start')}
-            style={{ WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
+            className={cn('flex items-end gap-2 group', isMe ? 'justify-end' : 'justify-start')}
             onTouchStart={() => startLongPress(msg)}
             onTouchEnd={cancelLongPress}
             onTouchMove={cancelLongPress}
@@ -511,44 +510,59 @@ function MessagesContent() {
         </div>
       )}
 
-      {/* ── CONTEXT MENU (mobile action sheet) ── */}
-      {contextMenuMsg && (
-        <div
-          className="fixed inset-0 z-[500] bg-black/40 backdrop-blur-sm flex items-end justify-center sm:items-center"
-          onClick={() => setContextMenuMsg(null)}
-        >
+      {/* ── CONTEXT MENU (iMessage style) ── */}
+      {contextMenuMsg && (() => {
+        const ctxIsMe = contextMenuMsg.sender_id === userId;
+        return (
           <div
-            className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xs overflow-hidden"
-            style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}
-            onClick={e => e.stopPropagation()}
+            className="fixed inset-0 z-[500] bg-black/60 backdrop-blur-md flex flex-col items-center justify-center px-5 gap-3"
+            onClick={() => setContextMenuMsg(null)}
           >
-            {contextMenuMsg.type === 'image' && contextMenuMsg.media_url && (
+            {/* Message preview lifted */}
+            <div className={cn('w-full flex', ctxIsMe ? 'justify-end' : 'justify-start')} onClick={e => e.stopPropagation()}>
+              <div className={cn(
+                'max-w-[80%] rounded-2xl text-sm shadow-2xl overflow-hidden',
+                contextMenuMsg.type !== 'image' && 'px-4 py-2.5',
+                ctxIsMe ? 'bg-[#2563EB] text-white' : 'bg-white text-slate-800'
+              )}>
+                {contextMenuMsg.type === 'image' && contextMenuMsg.media_url ? (
+                  <img src={contextMenuMsg.media_url} alt="Imagine" className="max-w-full max-h-52 object-cover block" />
+                ) : (
+                  <p className="break-words whitespace-pre-wrap">{contextMenuMsg.text}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="w-full bg-white rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+              {contextMenuMsg.type === 'image' && contextMenuMsg.media_url && (
+                <button
+                  onClick={() => saveImage(contextMenuMsg.media_url!)}
+                  className="w-full px-5 py-4 flex items-center gap-3 text-slate-800 active:bg-slate-50 text-sm font-medium border-b border-slate-100"
+                >
+                  <Download className="w-5 h-5 text-slate-500" />
+                  Salvează imaginea
+                </button>
+              )}
+              {ctxIsMe && (
+                <button
+                  onClick={() => { setContextMenuMsg(null); setPendingDeleteMsg(contextMenuMsg); }}
+                  className="w-full px-5 py-4 flex items-center gap-3 text-red-500 active:bg-red-50 text-sm font-medium border-b border-slate-100"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  Șterge mesajul
+                </button>
+              )}
               <button
-                onClick={() => saveImage(contextMenuMsg.media_url!)}
-                className="w-full px-5 py-4 flex items-center gap-3 text-slate-800 hover:bg-slate-50 text-sm font-medium border-b border-slate-100"
+                onClick={() => setContextMenuMsg(null)}
+                className="w-full px-5 py-4 text-slate-500 active:bg-slate-50 text-sm font-semibold"
               >
-                <Download className="w-5 h-5 text-slate-500" />
-                Salvează imaginea
+                Anulează
               </button>
-            )}
-            {contextMenuMsg.sender_id === userId && (
-              <button
-                onClick={() => { setContextMenuMsg(null); setPendingDeleteMsg(contextMenuMsg); }}
-                className="w-full px-5 py-4 flex items-center gap-3 text-red-500 hover:bg-red-50 text-sm font-medium border-b border-slate-100"
-              >
-                <Trash2 className="w-5 h-5" />
-                Șterge mesajul
-              </button>
-            )}
-            <button
-              onClick={() => setContextMenuMsg(null)}
-              className="w-full px-5 py-4 text-slate-500 hover:bg-slate-50 text-sm font-semibold"
-            >
-              Anulează
-            </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── DELETE CONFIRMATION ── */}
       {pendingDeleteMsg && (
