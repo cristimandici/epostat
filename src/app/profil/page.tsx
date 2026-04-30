@@ -138,12 +138,14 @@ export default function ProfilePage() {
 
   const saveProfile = async () => {
     setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSaving(false); return; }
     await supabase.from('profiles').update({
       name: editForm.name,
       phone: editForm.phone || null,
       city: editForm.city || null,
       updated_at: new Date().toISOString(),
-    }).eq('id', userId);
+    }).eq('id', user.id);
     setProfile(p => p ? { ...p, ...editForm } : p);
     setEditing(false);
     setSaving(false);

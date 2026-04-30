@@ -1,34 +1,110 @@
 'use client';
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Heart, Share2, MapPin, Clock, Eye, Star, ShieldCheck,
-  MessageCircle, TrendingDown, ShoppingBag, ChevronLeft,
+  MessageCircle, TrendingDown, ChevronLeft,
   ChevronRight, Phone, Flag, Zap, BadgeCheck,
 } from 'lucide-react';
-import { DEMO_ADS, formatPrice, timeAgo, CONDITIONS, CONDITION_COLORS } from '@/lib/data';
+import { formatPrice, timeAgo, CONDITIONS, CONDITION_COLORS } from '@/lib/data';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import OfferModal from '@/components/offers/OfferModal';
 import ToastContainer from '@/components/ui/Toast';
 import AdCard from '@/components/ads/AdCard';
-import { Toast } from '@/lib/types';
+import { Toast, Ad } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
+
+const PLACEHOLDER = 'https://images.unsplash.com/photo-1560343090-f0409e92791a?w=800&auto=format';
+
+function mapAd(row: Record<string, unknown>): Ad {
+  return {
+    id: row.id as string,
+    title: row.title as string,
+    price: Number(row.price),
+    negotiable: row.negotiable as boolean,
+    category: (row.category_id as string) || '',
+    condition: row.condition as Ad['condition'],
+    description: (row.description as string) || '',
+    images: (row.images as string[])?.length ? (row.images as string[]) : [PLACEHOLDER],
+    location: (row.location as string) || '',
+    city: (row.city as string) || '',
+    postedAt: row.created_at as string,
+    views: (row.views as number) || 0,
+    favorites: (row.favorites_count as number) || 0,
+    status: row.status as Ad['status'],
+    urgent: (row.urgent as boolean) || false,
+    seller: {
+      id: (row.seller_id as string) || '',
+      name: (row.seller_name as string) || 'Utilizator',
+      avatar: row.seller_avatar as string | undefined,
+      rating: Number(row.seller_rating) || 5,
+      reviewCount: (row.seller_review_count as number) || 0,
+      adsCount: 0,
+      memberSince: '',
+      verified: (row.seller_verified as boolean) || false,
+      phone: row.seller_phone as string | undefined,
+    },
+  };
+}
 
 export default function AdDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const ad = DEMO_ADS.find((a) => a.id === id);
+  const supabase = createClient();
 
+  const [ad, setAd] = useState<Ad | null>(null);
+  const [related, setRelated] = useState<Ad[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentImg, setCurrentImg] = useState(0);
   const [offerOpen, setOfferOpen] = useState(false);
   const [isFav, setIsFav] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = (message: string, type: Toast['type'] = 'success') =>
-    setToasts((prev) => [...prev, { id: Date.now().toString(), message, type }]);
-  const removeToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts(p => [...p, { id: Date.now().toString(), message, type }]);
+  const removeToast = (id: string) => setToasts(p => p.filter(t => t.id !== id));
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from('ads_with_seller')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (!data) { setLoading(false); return; }
+
+      const mapped = mapAd(data as Record<string, unknown>);
+      setAd(mapped);
+
+      // Increment views
+      supabase.from('ads').update({ views: (data.views || 0) + 1 }).eq('id', id);
+
+      // Load related ads
+      const { data: relData } = await supabase
+        .from('ads_with_seller')
+        .select('*')
+        .eq('category_id', data.category_id)
+        .eq('status', 'activ')
+        .neq('id', id)
+        .limit(4);
+
+      setRelated((relData || []).map(r => mapAd(r as Record<string, unknown>)));
+      setLoading(false);
+    }
+    load();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 flex items-center justify-center">
+        <div className="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   if (!ad) {
     return (
@@ -43,20 +119,18 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
     );
   }
 
-  const relatedAds = DEMO_ADS.filter((a) => a.id !== id && a.category === ad.category).slice(0, 4);
-
   return (
     <>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6" aria-label="Breadcrumb">
+        <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6">
           <Link href="/" className="hover:text-blue-600 transition">Acasă</Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <Link href="/anunturi" className="hover:text-blue-600 transition">Anunțuri</Link>
           <ChevronRight className="w-3.5 h-3.5" />
-          <Link href={`/anunturi?cat=${ad.category.toLowerCase()}`} className="hover:text-blue-600 transition">{ad.category}</Link>
+          <Link href={`/anunturi?cat=${ad.category}`} className="hover:text-blue-600 transition">{ad.category}</Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-slate-800 font-medium line-clamp-1 max-w-[200px]">{ad.title}</span>
         </nav>
@@ -74,28 +148,18 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                 />
                 {ad.images.length > 1 && (
                   <>
-                    <button
-                      onClick={() => setCurrentImg((p) => (p - 1 + ad.images.length) % ad.images.length)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center text-slate-700 transition"
-                      aria-label="Fotografie anterioară"
-                    >
+                    <button onClick={() => setCurrentImg(p => (p - 1 + ad.images.length) % ad.images.length)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center text-slate-700 transition">
                       <ChevronLeft className="w-5 h-5" />
                     </button>
-                    <button
-                      onClick={() => setCurrentImg((p) => (p + 1) % ad.images.length)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center text-slate-700 transition"
-                      aria-label="Fotografie următoare"
-                    >
+                    <button onClick={() => setCurrentImg(p => (p + 1) % ad.images.length)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center text-slate-700 transition">
                       <ChevronRight className="w-5 h-5" />
                     </button>
                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                       {ad.images.map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setCurrentImg(i)}
-                          className={cn('w-2 h-2 rounded-full transition-all', i === currentImg ? 'bg-white scale-125' : 'bg-white/50')}
-                          aria-label={`Fotografie ${i + 1}`}
-                        />
+                        <button key={i} onClick={() => setCurrentImg(i)}
+                          className={cn('w-2 h-2 rounded-full transition-all', i === currentImg ? 'bg-white scale-125' : 'bg-white/50')} />
                       ))}
                     </div>
                   </>
@@ -108,15 +172,11 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                   </div>
                 )}
               </div>
-              {/* Thumbnail strip */}
               {ad.images.length > 1 && (
                 <div className="flex gap-2 p-3 border-t border-slate-100">
                   {ad.images.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentImg(i)}
-                      className={cn('w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0', i === currentImg ? 'border-blue-500' : 'border-transparent hover:border-slate-300')}
-                    >
+                    <button key={i} onClick={() => setCurrentImg(i)}
+                      className={cn('w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0', i === currentImg ? 'border-blue-500' : 'border-transparent hover:border-slate-300')}>
                       <img src={img} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
@@ -130,39 +190,20 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
               <p className="text-slate-600 leading-relaxed whitespace-pre-line">{ad.description}</p>
             </div>
 
-            {/* Specs */}
-            {ad.specs && Object.keys(ad.specs).length > 0 && (
-              <div className="bg-white rounded-3xl border border-slate-200/80 p-6">
-                <h2 className="font-bold text-slate-900 mb-4">Specificații</h2>
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {Object.entries(ad.specs).map(([key, val]) => (
-                    <div key={key} className="flex items-start gap-2 py-2.5 border-b border-slate-100 last:border-0">
-                      <dt className="text-sm text-slate-500 min-w-[120px]">{key}</dt>
-                      <dd className="text-sm font-semibold text-slate-800">{val}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
-
             {/* Location */}
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6">
               <h2 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-blue-600" /> Locație
               </h2>
-              <p className="text-slate-700 font-medium">{ad.location}</p>
-              <div className="mt-3 bg-slate-100 rounded-xl h-40 flex items-center justify-center text-slate-400 text-sm">
-                Hartă indisponibilă în modul demo
-              </div>
+              <p className="text-slate-700 font-medium">{ad.city}{ad.location ? `, ${ad.location}` : ''}</p>
             </div>
           </div>
 
-          {/* Right column – sticky panel */}
+          {/* Right column */}
           <div className="flex flex-col gap-4">
             <div className="sticky top-20">
               {/* Price card */}
               <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
-                {/* Badges row */}
                 <div className="flex flex-wrap gap-2 mb-3">
                   <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-semibold', CONDITION_COLORS[ad.condition])}>
                     {CONDITIONS[ad.condition]}
@@ -182,67 +223,38 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                   )}
                 </div>
 
-                {/* CTA buttons */}
                 <div className="flex flex-col gap-3">
-                  <Button
-                    size="lg"
-                    fullWidth
-                    className="gap-2"
-                    onClick={() => { addToast('Redirecționare spre plată... (demo)', 'info'); }}
-                  >
-                    <ShoppingBag className="w-5 h-5" /> Cumpără la {formatPrice(ad.price)}
-                  </Button>
-
                   {ad.negotiable && (
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      fullWidth
-                      className="gap-2"
-                      onClick={() => setOfferOpen(true)}
-                    >
+                    <Button variant="outline" size="lg" fullWidth className="gap-2" onClick={() => setOfferOpen(true)}>
                       <TrendingDown className="w-5 h-5" /> Fă o ofertă
                     </Button>
                   )}
-
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    fullWidth
-                    className="gap-2"
-                    onClick={() => { addToast('Conversație deschisă cu vânzătorul!', 'success'); }}
-                  >
+                  <Button variant="secondary" size="lg" fullWidth className="gap-2"
+                    onClick={() => addToast('Funcție disponibilă în curând!', 'info')}>
                     <MessageCircle className="w-5 h-5" /> Trimite mesaj
                   </Button>
                 </div>
 
-                {/* Meta */}
                 <div className="mt-5 pt-5 border-t border-slate-100 flex flex-wrap gap-3 text-xs text-slate-500">
                   <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {timeAgo(ad.postedAt)}</span>
                   <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {ad.views} vizualizări</span>
                   <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" /> {ad.favorites} favorite</span>
                 </div>
 
-                {/* Action row */}
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={() => { setIsFav(!isFav); addToast(isFav ? 'Eliminat din favorite' : 'Salvat la favorite!', isFav ? 'info' : 'success'); }}
-                    className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium border transition', isFav ? 'border-red-300 bg-red-50 text-red-600' : 'border-slate-200 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500')}
-                  >
+                    className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium border transition',
+                      isFav ? 'border-red-300 bg-red-50 text-red-600' : 'border-slate-200 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500')}>
                     <Heart className={cn('w-4 h-4', isFav && 'fill-current')} />
                     {isFav ? 'Salvat' : 'Salvează'}
                   </button>
                   <button
                     onClick={() => { navigator.clipboard?.writeText(window.location.href); addToast('Link copiat!', 'success'); }}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
-                  >
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
                     <Share2 className="w-4 h-4" /> Distribuie
                   </button>
-                  <button
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition"
-                    aria-label="Raportează anunțul"
-                    title="Raportează"
-                  >
+                  <button className="px-3 py-2 rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
                     <Flag className="w-4 h-4" />
                   </button>
                 </div>
@@ -250,84 +262,69 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
 
               {/* Seller card */}
               <div className="bg-white rounded-3xl border border-slate-200/80 p-5 mt-4">
-                <Link href="/profil" className="flex items-center gap-3 group mb-4">
+                <div className="flex items-center gap-3 mb-4">
                   <div className="relative">
-                    <img
-                      src={ad.seller.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${ad.seller.name}`}
-                      alt={ad.seller.name}
-                      className="w-12 h-12 rounded-full border-2 border-slate-200 group-hover:border-blue-300 transition"
-                    />
+                    {ad.seller.avatar ? (
+                      <img src={ad.seller.avatar} alt={ad.seller.name}
+                        className="w-12 h-12 rounded-full border-2 border-slate-200 object-cover" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-black">
+                        {ad.seller.name[0]?.toUpperCase()}
+                      </div>
+                    )}
                     {ad.seller.verified && (
-                      <BadgeCheck className="absolute -bottom-0.5 -right-0.5 w-5 h-5 text-blue-500 fill-blue-500" aria-label="Utilizator verificat" />
+                      <BadgeCheck className="absolute -bottom-0.5 -right-0.5 w-5 h-5 text-blue-500 fill-blue-500" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-slate-900 group-hover:text-blue-600 transition">{ad.seller.name}</p>
-                    <p className="text-xs text-slate-500">Membru din {ad.seller.memberSince}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition" />
-                </Link>
-
-                <div className="flex gap-4 text-sm text-slate-600 mb-4">
-                  <div className="text-center flex-1">
-                    <p className="font-black text-slate-900 text-base">{ad.seller.adsCount}</p>
-                    <p className="text-xs text-slate-400">Anunțuri</p>
-                  </div>
-                  <div className="text-center flex-1 border-x border-slate-100">
-                    <div className="flex items-center justify-center gap-0.5">
-                      <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
-                      <p className="font-black text-slate-900 text-base">{ad.seller.rating.toFixed(1)}</p>
+                    <p className="font-bold text-slate-900">{ad.seller.name}</p>
+                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                      <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                      <span>{Number(ad.seller.rating).toFixed(1)}</span>
+                      <span>· {ad.seller.reviewCount} recenzii</span>
                     </div>
-                    <p className="text-xs text-slate-400">{ad.seller.reviewCount} recenzii</p>
                   </div>
-                  <div className="text-center flex-1">
-                    {ad.seller.verified ? (
-                      <>
-                        <ShieldCheck className="w-5 h-5 text-green-500 mx-auto" />
-                        <p className="text-xs text-green-600 font-medium">Verificat</p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-5 h-5 rounded-full border-2 border-slate-300 mx-auto" />
-                        <p className="text-xs text-slate-400">Neverificat</p>
-                      </>
-                    )}
-                  </div>
+                  {ad.seller.verified && (
+                    <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                      <ShieldCheck className="w-3 h-3" /> Verificat
+                    </span>
+                  )}
                 </div>
 
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => addToast('Funcție disponibilă după autentificare', 'info')}
-                >
-                  <Phone className="w-4 h-4" /> Afișează numărul
-                </Button>
+                {ad.seller.phone ? (
+                  <a href={`tel:${ad.seller.phone}`}>
+                    <Button variant="secondary" fullWidth size="sm" className="gap-2">
+                      <Phone className="w-4 h-4" /> {ad.seller.phone}
+                    </Button>
+                  </a>
+                ) : (
+                  <Button variant="secondary" fullWidth size="sm" className="gap-2"
+                    onClick={() => addToast('Vânzătorul nu a adăugat un număr de telefon.', 'info')}>
+                    <Phone className="w-4 h-4" /> Afișează numărul
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         </div>
 
         {/* Related ads */}
-        {relatedAds.length > 0 && (
+        {related.length > 0 && (
           <section className="mt-12">
             <h2 className="text-xl font-black text-slate-900 mb-5">Anunțuri similare</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {relatedAds.map((a) => <AdCard key={a.id} ad={a} />)}
+              {related.map(a => <AdCard key={a.id} ad={a} />)}
             </div>
           </section>
         )}
       </div>
 
-      {/* Offer modal */}
       <OfferModal
         open={offerOpen}
         onClose={() => setOfferOpen(false)}
         adTitle={ad.title}
         askingPrice={ad.price}
         onSubmit={(amount, message) => {
-          console.log('Offer submitted:', amount, message);
           setOfferOpen(false);
           addToast('Oferta ta a fost trimisă vânzătorului!');
         }}

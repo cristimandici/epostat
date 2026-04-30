@@ -25,7 +25,7 @@ const CONDITIONS = [
   { value: 'necesita-reparatii', label: 'Necesită reparații', desc: 'Vânzare ca atare' },
 ];
 
-const CITIES = ['București', 'Cluj-Napoca', 'Timișoara', 'Iași', 'Brașov', 'Constanța', 'Sibiu', 'Craiova', 'Galați', 'Oradea', 'Bacău', 'Arad', 'Ploiești', 'Pitești'];
+const CITIES = ['Alba Iulia', 'Alexandria', 'Arad', 'Bacău', 'Baia Mare', 'Bistrița', 'Botoșani', 'Brăila', 'Brașov', 'București', 'Buzău', 'Călărași', 'Cluj-Napoca', 'Constanța', 'Craiova', 'Deva', 'Drobeta-Turnu Severin', 'Focșani', 'Galați', 'Giurgiu', 'Iași', 'Ilfov', 'Miercurea Ciuc', 'Oradea', 'Piatra Neamț', 'Pitești', 'Ploiești', 'Râmnicu Vâlcea', 'Reșița', 'Satu Mare', 'Sfântu Gheorghe', 'Sibiu', 'Slatina', 'Slobozia', 'Suceava', 'Târgu Jiu', 'Târgu Mureș', 'Târgoviște', 'Timișoara', 'Tulcea', 'Vaslui', 'Zalău'];
 
 const CAT_ICONS: Record<string, string> = {
   'Laptop': '💻', 'Car': '🚗', 'Home': '🏠', 'Shirt': '👗',
