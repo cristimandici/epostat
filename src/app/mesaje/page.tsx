@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Send, Search, BadgeCheck, ArrowLeft, MessageCircle } from 'lucide-react';
 import { timeAgo } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -219,6 +220,10 @@ function MessagesContent() {
     c.ad_title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const otherId = activeConv
+    ? (activeConv.buyer_id === userId ? activeConv.seller_id : activeConv.buyer_id)
+    : '';
+
   const MessageBubbles = () => (
     <>
       {messagesLoading ? (
@@ -233,7 +238,19 @@ function MessagesContent() {
       ) : messages.map(msg => {
         const isMe = msg.sender_id === userId;
         return (
-          <div key={msg.id} className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
+          <div key={msg.id} className={cn('flex items-end gap-2', isMe ? 'justify-end' : 'justify-start')}>
+            {!isMe && activeConv && (
+              <Link href={`/utilizator/${otherId}`} className="shrink-0 mb-0.5" title={`Vezi profilul ${activeConv.other_name}`}>
+                {activeConv.other_avatar ? (
+                  <img src={activeConv.other_avatar} alt={activeConv.other_name}
+                    className="w-7 h-7 rounded-full border border-slate-200 object-cover hover:opacity-80 transition" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs hover:opacity-80 transition">
+                    {activeConv.other_name[0]?.toUpperCase()}
+                  </div>
+                )}
+              </Link>
+            )}
             <div className={cn(
               'max-w-[75%] px-4 py-2.5 rounded-2xl text-sm',
               isMe ? 'bg-[#2563EB] text-white rounded-br-sm' : 'bg-slate-100 text-slate-800 rounded-bl-sm'
@@ -275,11 +292,13 @@ function MessagesContent() {
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <Avatar name={activeConv.other_name} avatar={activeConv.other_avatar} size="sm" />
-            <div className="flex-1 min-w-0">
+            <Link href={`/utilizator/${otherId}`} className="hover:opacity-80 transition">
+              <Avatar name={activeConv.other_name} avatar={activeConv.other_avatar} size="sm" />
+            </Link>
+            <Link href={`/utilizator/${otherId}`} className="flex-1 min-w-0 hover:opacity-70 transition">
               <p className="font-bold text-slate-900 text-sm leading-tight">{activeConv.other_name}</p>
               <p className="text-xs text-slate-500 truncate">{activeConv.ad_title}</p>
-            </div>
+            </Link>
           </div>
 
           {/* Messages */}
@@ -383,11 +402,13 @@ function MessagesContent() {
             {activeConv ? (
               <>
                 <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-3 shrink-0">
-                  <Avatar name={activeConv.other_name} avatar={activeConv.other_avatar} size="sm" />
-                  <div className="flex-1 min-w-0">
+                  <Link href={`/utilizator/${otherId}`} className="hover:opacity-80 transition">
+                    <Avatar name={activeConv.other_name} avatar={activeConv.other_avatar} size="sm" />
+                  </Link>
+                  <Link href={`/utilizator/${otherId}`} className="flex-1 min-w-0 hover:opacity-70 transition">
                     <p className="font-bold text-slate-900 text-sm">{activeConv.other_name}</p>
                     <p className="text-xs text-slate-500 truncate">{activeConv.ad_title}</p>
-                  </div>
+                  </Link>
                 </div>
 
                 <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
