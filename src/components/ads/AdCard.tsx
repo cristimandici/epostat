@@ -31,7 +31,8 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
       setIsFav(false);
       onFavoriteToggle?.(ad.id, false);
     } else {
-      await supabase.from('favorites').upsert({ user_id: user.id, ad_id: ad.id }, { onConflict: 'user_id,ad_id' });
+      const { error: insErr } = await supabase.from('favorites').insert({ user_id: user.id, ad_id: ad.id });
+      if (insErr && insErr.code !== '23505') { setLoading(false); return; } // 23505 = duplicate, safe to ignore
       setIsFav(true);
       onFavoriteToggle?.(ad.id, true);
     }
