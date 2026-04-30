@@ -78,12 +78,12 @@ function MessagesContent() {
 
   const activeConv = conversations.find(c => c.id === activeId);
 
-  const scrollToBottom = () => {
-    requestAnimationFrame(() => {
+  const scrollToBottom = (delay = 0) => {
+    setTimeout(() => {
       [messagesContainerRef, mobileMessagesContainerRef].forEach(ref => {
         if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
       });
-    });
+    }, delay);
   };
 
   const loadConversations = useCallback(async (uid: string) => {
@@ -137,6 +137,7 @@ function MessagesContent() {
 
     setMessages((data || []) as Message[]);
     setMessagesLoading(false);
+    scrollToBottom(150);
 
     await supabase.rpc('mark_conversation_read', { p_conversation_id: convId });
     setConversations(prev => prev.map(c => c.id === convId ? { ...c, my_unread: 0 } : c));
