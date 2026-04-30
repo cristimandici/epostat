@@ -299,16 +299,16 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                   <button
                     disabled={favLoading}
                     onClick={async () => {
-                      if (!currentUserId) { addToast('Trebuie să fii autentificat.', 'error'); return; }
+                      if (!currentUserId) { addToast('Trebuie să fii autentificat pentru a salva favorite.', 'error'); return; }
                       setFavLoading(true);
                       if (isFav) {
-                        await supabase.from('favorites').delete().eq('user_id', currentUserId).eq('ad_id', id);
-                        setIsFav(false);
-                        addToast('Eliminat din favorite', 'info');
+                        const { error } = await supabase.from('favorites').delete().eq('user_id', currentUserId).eq('ad_id', id);
+                        if (error) { addToast('Eroare: ' + error.message, 'error'); }
+                        else { setIsFav(false); addToast('Eliminat din favorite', 'info'); }
                       } else {
-                        await supabase.from('favorites').insert({ user_id: currentUserId, ad_id: id });
-                        setIsFav(true);
-                        addToast('Salvat la favorite!', 'success');
+                        const { error } = await supabase.from('favorites').insert({ user_id: currentUserId, ad_id: id });
+                        if (error) { addToast('Eroare: ' + error.message, 'error'); }
+                        else { setIsFav(true); addToast('Salvat la favorite!', 'success'); }
                       }
                       setFavLoading(false);
                     }}
