@@ -53,7 +53,7 @@ function MessagesContent() {
   const [userId, setUserId] = useState('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(searchParams.get('conv'));
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -66,7 +66,7 @@ function MessagesContent() {
   const longPressActivated = useRef(false);
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
-  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>(searchParams.get('conv') ? 'chat' : 'list');
   const [searchQuery, setSearchQuery] = useState('');
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const mobileMessagesContainerRef = useRef<HTMLDivElement>(null);
@@ -613,12 +613,12 @@ function MessagesContent() {
       )}
 
       {/* ── MOBILE FULL-SCREEN CHAT ── */}
-      {mobileView === 'chat' && activeConv && (
+      {mobileView === 'chat' && (
         <div
           className="sm:hidden fixed inset-0 z-[200] bg-white flex flex-col"
           style={{ height: '100dvh' }}
         >
-          {/* Header */}
+          {activeConv ? (<>
           <div className="shrink-0 px-4 border-b border-slate-200 bg-white flex items-center gap-3"
             style={{ paddingTop: 'max(12px, env(safe-area-inset-top))', paddingBottom: '12px' }}>
             <button
@@ -688,6 +688,11 @@ function MessagesContent() {
               </button>
             </form>
           </div>
+        </>) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+          </div>
+        )}
         </div>
       )}
 
