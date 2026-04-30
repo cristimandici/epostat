@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   BadgeCheck, Star, Edit3, Package, TrendingDown,
   Heart, ChevronRight, Plus, ShieldCheck, Phone, Mail,
-  Save, X, LogOut, Upload, Clock,
+  Save, X, LogOut, Upload, Clock, Pencil, Trash2, CheckCircle2,
 } from 'lucide-react';
 import AdCard from '@/components/ads/AdCard';
 import Button from '@/components/ui/Button';
@@ -90,6 +90,8 @@ export default function ProfilePage() {
   const [verifyStatus, setVerifyStatus] = useState<'none' | 'pending' | 'verified'>('none');
   const [verifyLoading, setVerifyLoading] = useState(false);
   const verifyInputRef = useRef<HTMLInputElement>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [adActionLoading, setAdActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -191,6 +193,25 @@ export default function ProfilePage() {
     }
     setVerifyLoading(false);
     if (verifyInputRef.current) verifyInputRef.current.value = '';
+  };
+
+  const handleMarkSold = async (adId: string) => {
+    setAdActionLoading(adId + '_sold');
+    await supabase.from('ads').update({ status: 'vandut' }).eq('id', adId);
+    const ad = myAds.find(a => a.id === adId);
+    if (ad) {
+      setMyAds(prev => prev.filter(a => a.id !== adId));
+      setSoldAds(prev => [{ ...ad, status: 'vandut' as Ad['status'] }, ...prev]);
+    }
+    setAdActionLoading(null);
+  };
+
+  const handleDelete = async (adId: string) => {
+    setAdActionLoading(adId + '_delete');
+    await supabase.from('ads').delete().eq('id', adId);
+    setMyAds(prev => prev.filter(a => a.id !== adId));
+    setConfirmDeleteId(null);
+    setAdActionLoading(null);
   };
 
   if (loading) {
@@ -401,15 +422,51 @@ export default function ProfilePage() {
           {myAds.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {myAds.map(ad => (
-                <AdCard
-                  key={ad.id}
-                  ad={ad}
-                  favorited={favorites.some(f => f.id === ad.id)}
-                  onFavoriteToggle={(id, nowFav) => {
-                    if (nowFav) setFavorites(prev => prev.some(f => f.id === id) ? prev : [...prev, ad]);
-                    else setFavorites(prev => prev.filter(f => f.id !== id));
-                  }}
-                />
+                <div key={ad.id} className="flex flex-col gap-2">
+                  <AdCard
+                    ad={ad}
+                    favorited={favorites.some(f => f.id === ad.id)}
+                    onFavoriteToggle={(id, nowFav) => {
+                      if (nowFav) setFavorites(prev => prev.some(f => f.id === id) ? prev : [...prev, ad]);
+                      else setFavorites(prev => prev.filter(f => f.id !== id));
+                    }}
+                  />
+                  {confirmDeleteId === ad.id ? (
+                    <div className="flex gap-1.5 px-1">
+                      <span className="text-xs text-slate-500 flex-1 flex items-center">Sigur ștergi?</span>
+                      <button
+                        onClick={() => handleDelete(ad.id)}
+                        disabled={adActionLoading === ad.id + '_delete'}
+                        className="px-2 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition disabled:opacity-50">
+                        {adActionLoading === ad.id + '_delete' ? '...' : 'Șterge'}
+                      </button>
+                      <button onClick={() => setConfirmDeleteId(null)}
+                        className="px-2 py-1 rounded-lg bg-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-300 transition">
+                        Nu
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-1.5 px-1">
+                      <Link href={`/anunturi/${ad.id}/editeaza`} className="flex-1">
+                        <button className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium hover:bg-slate-50 transition">
+                          <Pencil className="w-3 h-3" /> Editează
+                        </button>
+                      </Link>
+                      <button
+                        onClick={() => handleMarkSold(ad.id)}
+                        disabled={adActionLoading === ad.id + '_sold'}
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-green-200 text-green-700 text-xs font-medium hover:bg-green-50 transition disabled:opacity-50">
+                        <CheckCircle2 className="w-3 h-3" />
+                        {adActionLoading === ad.id + '_sold' ? '...' : 'Vândut'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(ad.id)}
+                        className="px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 text-xs font-medium hover:bg-red-50 transition">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           ) : (

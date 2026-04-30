@@ -110,7 +110,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
         setCurrentUserId(user.id);
         const { data: favRows } = await supabase
           .from('favorites')
-          .select('id')
+          .select('ad_id')
           .eq('user_id', user.id)
           .eq('ad_id', id)
           .limit(1);
