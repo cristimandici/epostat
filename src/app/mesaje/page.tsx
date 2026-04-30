@@ -408,7 +408,7 @@ function MessagesContent() {
       {/* ── LIGHTBOX ── */}
       {lightboxIdx !== null && imageMessages[lightboxIdx] && (
         <div
-          className="fixed inset-0 z-[400] bg-black/95 flex items-center justify-center"
+          className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-md flex items-center justify-center"
           onClick={() => setLightboxIdx(null)}
           onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
           onTouchEnd={e => {
