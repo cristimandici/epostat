@@ -79,8 +79,10 @@ function MessagesContent() {
   const activeConv = conversations.find(c => c.id === activeId);
 
   const scrollToBottom = () => {
-    [messagesContainerRef, mobileMessagesContainerRef].forEach(ref => {
-      if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
+    requestAnimationFrame(() => {
+      [messagesContainerRef, mobileMessagesContainerRef].forEach(ref => {
+        if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
+      });
     });
   };
 
