@@ -224,6 +224,8 @@ function MessagesContent() {
     const { data: msgId, error } = await supabase.rpc('send_message', {
       p_conversation_id: activeId,
       p_text: text,
+      p_type: 'text',
+      p_media_url: null,
     });
 
     if (!error && msgId) {
