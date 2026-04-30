@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Send, Search, BadgeCheck, ArrowLeft, MessageCircle, ImagePlus } from 'lucide-react';
+import { Send, Search, BadgeCheck, ArrowLeft, MessageCircle, ImagePlus, Trash2 } from 'lucide-react';
 import { timeAgo } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -57,6 +57,7 @@ function MessagesContent() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
@@ -167,6 +168,13 @@ function MessagesContent() {
           supabase.rpc('mark_conversation_read', { p_conversation_id: activeId });
         }
       })
+      .on('postgres_changes', {
+        event: 'DELETE', schema: 'public', table: 'messages',
+        filter: `conversation_id=eq.${activeId}`,
+      }, payload => {
+        const deletedId = (payload.old as { id: string }).id;
+        if (deletedId) setMessages(prev => prev.filter(m => m.id !== deletedId));
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [activeId, userId]);
@@ -267,6 +275,23 @@ function MessagesContent() {
     (fromMobile ? mobileInputRef : inputRef).current?.focus();
   };
 
+  const deleteMessage = async (msg: Message) => {
+    if (deletingMessageId) return;
+    setDeletingMessageId(msg.id);
+    const { error } = await supabase.rpc('delete_message', { p_message_id: msg.id });
+    if (!error) {
+      setMessages(prev => prev.filter(m => m.id !== msg.id));
+      if (msg.type === 'image' && msg.media_url) {
+        const marker = '/chat-images/';
+        const idx = msg.media_url.indexOf(marker);
+        if (idx !== -1) {
+          await supabase.storage.from('chat-images').remove([msg.media_url.slice(idx + marker.length)]);
+        }
+      }
+    }
+    setDeletingMessageId(null);
+  };
+
   const filteredConvs = conversations.filter(c =>
     !searchQuery ||
     c.other_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -290,8 +315,9 @@ function MessagesContent() {
         </div>
       ) : messages.map(msg => {
         const isMe = msg.sender_id === userId;
+        const isDeleting = deletingMessageId === msg.id;
         return (
-          <div key={msg.id} className={cn('flex items-end gap-2', isMe ? 'justify-end' : 'justify-start')}>
+          <div key={msg.id} className={cn('flex items-end gap-2 group', isMe ? 'justify-end' : 'justify-start')}>
             {!isMe && activeConv && (
               <Link href={`/utilizator/${otherId}`} className="shrink-0 mb-0.5" title={`Vezi profilul ${activeConv.other_name}`}>
                 {activeConv.other_avatar ? (
@@ -303,6 +329,19 @@ function MessagesContent() {
                   </div>
                 )}
               </Link>
+            )}
+            {isMe && (
+              <button
+                onClick={() => deleteMessage(msg)}
+                disabled={!!deletingMessageId}
+                className="opacity-30 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition shrink-0 mb-0.5"
+                aria-label="Șterge mesaj"
+              >
+                {isDeleting
+                  ? <div className="w-3.5 h-3.5 border border-slate-400 border-t-transparent rounded-full animate-spin" />
+                  : <Trash2 className="w-3.5 h-3.5" />
+                }
+              </button>
             )}
             <div className={cn(
               'max-w-[75%] rounded-2xl text-sm overflow-hidden',
