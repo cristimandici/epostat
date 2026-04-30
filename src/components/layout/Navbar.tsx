@@ -9,39 +9,23 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const [pendingOffers, setPendingOffers] = useState(0);
   const [userId, setUserId] = useState('');
 
   useEffect(() => {
     const supabase = createClient();
 
     async function loadCounts(uid: string) {
-      const [convRes, offersRes] = await Promise.all([
-        supabase
-          .from('conversations')
-          .select('buyer_id, seller_id, buyer_unread, seller_unread')
-          .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`),
-        supabase
-          .from('offers')
-          .select('id, buyer_id, seller_id, status')
-          .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`)
-          .in('status', ['asteptare', 'contraoferta']),
-      ]);
+      const { data } = await supabase
+        .from('conversations')
+        .select('buyer_id, seller_id, buyer_unread, seller_unread')
+        .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`);
 
-      if (convRes.data) {
-        const total = convRes.data.reduce((sum, c) => {
+      if (data) {
+        const total = data.reduce((sum, c) => {
           const mine = c.buyer_id === uid ? (c.buyer_unread || 0) : (c.seller_unread || 0);
           return sum + mine;
         }, 0);
         setUnreadMessages(total);
-      }
-
-      if (offersRes.data) {
-        const actionable = offersRes.data.filter(o => {
-          if (o.status === 'asteptare') return o.seller_id === uid;
-          return true;
-        });
-        setPendingOffers(actionable.length);
       }
     }
 
@@ -54,7 +38,6 @@ export default function Navbar() {
       const channel = supabase
         .channel(`navbar_counts_${user.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => loadCounts(user.id))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'offers' }, () => loadCounts(user.id))
         .subscribe();
 
       return () => { supabase.removeChannel(channel); };
@@ -119,16 +102,11 @@ export default function Navbar() {
               )}
             </Link>
             <Link
-              href="/oferte"
+              href="/notificari"
               className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition relative"
-              aria-label="Oferte"
+              aria-label="Notificări"
             >
               <Bell className="w-5 h-5" />
-              {pendingOffers > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold flex items-center justify-center leading-none">
-                  {pendingOffers > 9 ? '9+' : pendingOffers}
-                </span>
-              )}
             </Link>
             <Link
               href="/profil"
@@ -189,14 +167,7 @@ export default function Navbar() {
                   </span>
                 )
               },
-              {
-                href: '/oferte', label: 'Ofertele mele', icon: (
-                  <span className="relative">
-                    <Bell className="w-4 h-4" />
-                    {pendingOffers > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#F59E0B] text-white text-[9px] font-bold flex items-center justify-center">{pendingOffers > 9 ? '9+' : pendingOffers}</span>}
-                  </span>
-                )
-              },
+              { href: '/notificari', label: 'Notificări', icon: <Bell className="w-4 h-4" /> },
             ].map(({ href, label, icon }) => (
               <Link
                 key={href}
