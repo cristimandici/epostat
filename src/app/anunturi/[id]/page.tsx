@@ -61,6 +61,8 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
   const [currentImg, setCurrentImg] = useState(0);
   const [offerOpen, setOfferOpen] = useState(false);
   const [isFav, setIsFav] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = (message: string, type: Toast['type'] = 'success') =>
@@ -101,6 +103,19 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
 
       // Increment views
       supabase.from('ads').update({ views: (adRow.views || 0) + 1 }).eq('id', id);
+
+      // Check if current user has this ad favorited
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+        const { data: favRow } = await supabase
+          .from('favorites')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('ad_id', id)
+          .maybeSingle();
+        if (favRow) setIsFav(true);
+      }
 
       // Load related ads
       const { data: relData } = await supabase
@@ -282,8 +297,22 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
 
                 <div className="mt-3 flex gap-2">
                   <button
-                    onClick={() => { setIsFav(!isFav); addToast(isFav ? 'Eliminat din favorite' : 'Salvat la favorite!', isFav ? 'info' : 'success'); }}
-                    className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium border transition',
+                    disabled={favLoading}
+                    onClick={async () => {
+                      if (!currentUserId) { addToast('Trebuie să fii autentificat.', 'error'); return; }
+                      setFavLoading(true);
+                      if (isFav) {
+                        await supabase.from('favorites').delete().eq('user_id', currentUserId).eq('ad_id', id);
+                        setIsFav(false);
+                        addToast('Eliminat din favorite', 'info');
+                      } else {
+                        await supabase.from('favorites').insert({ user_id: currentUserId, ad_id: id });
+                        setIsFav(true);
+                        addToast('Salvat la favorite!', 'success');
+                      }
+                      setFavLoading(false);
+                    }}
+                    className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium border transition disabled:opacity-50',
                       isFav ? 'border-red-300 bg-red-50 text-red-600' : 'border-slate-200 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500')}>
                     <Heart className={cn('w-4 h-4', isFav && 'fill-current')} />
                     {isFav ? 'Salvat' : 'Salvează'}
@@ -363,9 +392,22 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
         onClose={() => setOfferOpen(false)}
         adTitle={ad.title}
         askingPrice={ad.price}
-        onSubmit={(amount, message) => {
-          setOfferOpen(false);
-          addToast('Oferta ta a fost trimisă vânzătorului!');
+        onSubmit={async (amount, message) => {
+          if (!currentUserId || !ad) { addToast('Trebuie să fii autentificat.', 'error'); return; }
+          const { error } = await supabase.from('offers').insert({
+            ad_id: id,
+            buyer_id: currentUserId,
+            seller_id: ad.seller.id,
+            original_price: ad.price,
+            current_amount: amount,
+            status: 'asteptare',
+          });
+          if (error) {
+            addToast('Eroare la trimiterea ofertei.', 'error');
+          } else {
+            setOfferOpen(false);
+            addToast('Oferta ta a fost trimisă vânzătorului!');
+          }
         }}
       />
     </>
