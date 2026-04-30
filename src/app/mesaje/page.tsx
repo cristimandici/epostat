@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Send, Search, BadgeCheck, ArrowLeft, MessageCircle, ImagePlus, Trash2, X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Send, Search, BadgeCheck, ArrowLeft, MessageCircle, ImagePlus, Trash2, X, ChevronLeft, ChevronRight, Download, Copy } from 'lucide-react';
 import { timeAgo } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -544,6 +544,15 @@ function MessagesContent() {
                   Salvează imaginea
                 </button>
               )}
+              {contextMenuMsg.type !== 'image' && contextMenuMsg.text && (
+                <button
+                  onClick={() => { navigator.clipboard.writeText(contextMenuMsg.text!); setContextMenuMsg(null); }}
+                  className="w-full px-5 py-4 flex items-center gap-3 text-slate-800 active:bg-slate-50 text-sm font-medium border-b border-slate-100"
+                >
+                  <Copy className="w-5 h-5 text-slate-500" />
+                  Copiază textul
+                </button>
+              )}
               {ctxIsMe && (
                 <button
                   onClick={() => { setContextMenuMsg(null); setPendingDeleteMsg(contextMenuMsg); }}
@@ -617,7 +626,7 @@ function MessagesContent() {
           </div>
 
           {/* Messages */}
-          <div ref={mobileMessagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+          <div ref={mobileMessagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 select-none" style={{ WebkitUserSelect: 'none' } as React.CSSProperties}>
             <MessageBubbles />
           </div>
 
@@ -746,7 +755,7 @@ function MessagesContent() {
                   </Link>
                 </div>
 
-                <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+                <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 select-none" style={{ WebkitUserSelect: 'none' } as React.CSSProperties}>
                   <MessageBubbles />
                 </div>
 
