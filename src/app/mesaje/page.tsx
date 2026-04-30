@@ -14,6 +14,7 @@ interface Conversation {
   ad_id: string;
   ad_title: string;
   ad_image: string;
+  ad_price: number | null;
   buyer_id: string;
   seller_id: string;
   last_message: string | null;
@@ -89,7 +90,7 @@ function MessagesContent() {
   const loadConversations = useCallback(async (uid: string) => {
     const { data: convData } = await supabase
       .from('conversations')
-      .select('*, ads(title, images)')
+      .select('*, ads(title, images, price)')
       .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`)
       .order('last_message_at', { ascending: false });
 
@@ -107,12 +108,13 @@ function MessagesContent() {
     const mapped: Conversation[] = convData.map(c => {
       const otherId = c.buyer_id === uid ? c.seller_id : c.buyer_id;
       const other = profMap[otherId];
-      const ad = c.ads as { title: string; images: string[] } | null;
+      const ad = c.ads as { title: string; images: string[]; price: number } | null;
       return {
         id: c.id,
         ad_id: c.ad_id,
         ad_title: ad?.title || 'Anunț șters',
         ad_image: ad?.images?.[0] || PLACEHOLDER_IMG,
+        ad_price: ad?.price ?? null,
         buyer_id: c.buyer_id,
         seller_id: c.seller_id,
         last_message: c.last_message,
@@ -638,9 +640,23 @@ function MessagesContent() {
             </Link>
             <Link href={`/utilizator/${otherId}`} className="flex-1 min-w-0 hover:opacity-70 transition">
               <p className="font-bold text-slate-900 text-sm leading-tight">{activeConv.other_name}</p>
-              <p className="text-xs text-slate-500 truncate">{activeConv.ad_title}</p>
             </Link>
           </div>
+
+          {/* Ad banner */}
+          <Link
+            href={`/anunturi/${activeConv.ad_id}`}
+            className="shrink-0 mx-3 my-2 flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 hover:bg-slate-100 active:bg-slate-100 transition"
+          >
+            <img src={activeConv.ad_image} alt={activeConv.ad_title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-slate-800 truncate leading-tight">{activeConv.ad_title}</p>
+              {activeConv.ad_price != null && (
+                <p className="text-xs text-blue-600 font-bold mt-0.5">{activeConv.ad_price.toLocaleString('ro-RO')} lei</p>
+              )}
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+          </Link>
 
           {/* Messages */}
           <div ref={mobileMessagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 select-none" style={{ WebkitUserSelect: 'none' } as React.CSSProperties}>
@@ -774,9 +790,23 @@ function MessagesContent() {
                   </Link>
                   <Link href={`/utilizator/${otherId}`} className="flex-1 min-w-0 hover:opacity-70 transition">
                     <p className="font-bold text-slate-900 text-sm">{activeConv.other_name}</p>
-                    <p className="text-xs text-slate-500 truncate">{activeConv.ad_title}</p>
                   </Link>
                 </div>
+
+                {/* Ad banner */}
+                <Link
+                  href={`/anunturi/${activeConv.ad_id}`}
+                  className="shrink-0 mx-3 my-2 flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 hover:bg-slate-100 transition"
+                >
+                  <img src={activeConv.ad_image} alt={activeConv.ad_title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-800 truncate leading-tight">{activeConv.ad_title}</p>
+                    {activeConv.ad_price != null && (
+                      <p className="text-xs text-blue-600 font-bold mt-0.5">{activeConv.ad_price.toLocaleString('ro-RO')} lei</p>
+                    )}
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                </Link>
 
                 <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 select-none" style={{ WebkitUserSelect: 'none' } as React.CSSProperties}>
                   <MessageBubbles />
