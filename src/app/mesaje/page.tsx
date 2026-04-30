@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Send, Search, BadgeCheck, ArrowLeft, MessageCircle, ImagePlus, Trash2 } from 'lucide-react';
+import { Send, Search, BadgeCheck, ArrowLeft, MessageCircle, ImagePlus, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { timeAgo } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -58,6 +58,8 @@ function MessagesContent() {
   const [sending, setSending] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const touchStartX = useRef(0);
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
@@ -190,6 +192,20 @@ function MessagesContent() {
   }, [userId, loadConversations]);
 
   useEffect(() => { scrollToBottom(); }, [messages]);
+
+  const imageMessages = messages.filter(m => m.type === 'image' && m.media_url);
+
+  useEffect(() => {
+    if (lightboxIdx === null) { document.body.style.overflow = ''; return; }
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxIdx(null);
+      if (e.key === 'ArrowLeft') setLightboxIdx(i => (i !== null && i > 0 ? i - 1 : i));
+      if (e.key === 'ArrowRight') setLightboxIdx(i => (i !== null && i < imageMessages.length - 1 ? i + 1 : i));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [lightboxIdx, imageMessages.length]);
 
   const openConversation = (id: string) => {
     setActiveId(id);
@@ -350,9 +366,16 @@ function MessagesContent() {
             )}>
               {msg.type === 'image' && msg.media_url ? (
                 <div>
-                  <a href={msg.media_url} target="_blank" rel="noopener noreferrer">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const idx = imageMessages.findIndex(m => m.id === msg.id);
+                      if (idx !== -1) setLightboxIdx(idx);
+                    }}
+                    className="block w-full cursor-zoom-in"
+                  >
                     <img src={msg.media_url} alt="Imagine" className="max-w-full max-h-60 object-cover block" />
-                  </a>
+                  </button>
                   <p className={cn('text-xs px-3 py-1.5', isMe ? 'text-blue-200' : 'text-slate-400')}>
                     {timeAgo(msg.created_at)}
                   </p>
@@ -382,6 +405,63 @@ function MessagesContent() {
 
   return (
     <>
+      {/* ── LIGHTBOX ── */}
+      {lightboxIdx !== null && imageMessages[lightboxIdx] && (
+        <div
+          className="fixed inset-0 z-[400] bg-black/95 flex items-center justify-center"
+          onClick={() => setLightboxIdx(null)}
+          onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
+          onTouchEnd={e => {
+            const diff = touchStartX.current - e.changedTouches[0].clientX;
+            if (Math.abs(diff) > 50) {
+              if (diff > 0) setLightboxIdx(i => (i !== null && i < imageMessages.length - 1 ? i + 1 : i));
+              else setLightboxIdx(i => (i !== null && i > 0 ? i - 1 : i));
+            }
+          }}
+        >
+          <button
+            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition z-10"
+            onClick={() => setLightboxIdx(null)}
+            aria-label="Închide"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          {imageMessages.length > 1 && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/60 text-sm font-medium select-none">
+              {lightboxIdx + 1} / {imageMessages.length}
+            </div>
+          )}
+
+          {lightboxIdx > 0 && (
+            <button
+              className="absolute left-3 top-1/2 -translate-y-1/2 p-2 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition z-10"
+              onClick={e => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1); }}
+              aria-label="Anterioară"
+            >
+              <ChevronLeft className="w-8 h-8" />
+            </button>
+          )}
+
+          {lightboxIdx < imageMessages.length - 1 && (
+            <button
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition z-10"
+              onClick={e => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1); }}
+              aria-label="Următoarea"
+            >
+              <ChevronRight className="w-8 h-8" />
+            </button>
+          )}
+
+          <img
+            src={imageMessages[lightboxIdx].media_url!}
+            alt="Imagine"
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       {/* ── MOBILE FULL-SCREEN CHAT ── */}
       {mobileView === 'chat' && activeConv && (
         <div
