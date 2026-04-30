@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Heart, Share2, MapPin, Clock, Eye, Star, ShieldCheck,
   MessageCircle, TrendingDown, ChevronLeft,
-  ChevronRight, Phone, Flag, Zap, BadgeCheck,
+  ChevronRight, Phone, Flag, Zap, BadgeCheck, X,
 } from 'lucide-react';
 import { formatPrice, timeAgo, CONDITIONS, CONDITION_COLORS } from '@/lib/data';
 import Button from '@/components/ui/Button';
@@ -60,6 +60,9 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
   const [loading, setLoading] = useState(true);
   const [currentImg, setCurrentImg] = useState(0);
   const [offerOpen, setOfferOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
   const [isFav, setIsFav] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -101,8 +104,8 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
       const mapped = mapAd(combined as Record<string, unknown>);
       setAd(mapped);
 
-      // Increment views
-      supabase.from('ads').update({ views: (adRow.views || 0) + 1 }).eq('id', id);
+      // Increment views atomically (RPC excludes seller's own views)
+      supabase.rpc('increment_ad_views', { p_ad_id: id });
 
       // Check if current user has this ad favorited
       const { data: { user } } = await supabase.auth.getUser();
@@ -189,7 +192,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
           <span className="text-slate-800 font-medium line-clamp-1 max-w-[200px]">{ad.title}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 pb-24 lg:pb-0">
           {/* Left column */}
           <div className="flex flex-col gap-6">
             {/* Gallery */}
@@ -346,7 +349,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
                     <Share2 className="w-4 h-4" /> Distribuie
                   </button>
-                  <button className="px-3 py-2 rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
+                  <button onClick={() => setReportOpen(true)} className="px-3 py-2 rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 transition" title="Raportează anunțul">
                     <Flag className="w-4 h-4" />
                   </button>
                 </div>
@@ -410,6 +413,75 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
           </section>
         )}
       </div>
+
+      {/* Mobile sticky action bar */}
+      {ad.status !== 'vandut' && currentUserId !== ad.seller.id && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-slate-200 flex gap-3 px-4 pt-3"
+          style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          {ad.negotiable && (
+            <Button variant="outline" size="md" fullWidth className="gap-2" onClick={() => setOfferOpen(true)}>
+              <TrendingDown className="w-4 h-4" /> Fă o ofertă
+            </Button>
+          )}
+          <Button variant="secondary" size="md" fullWidth className="gap-2"
+            onClick={async () => {
+              if (!currentUserId) { addToast('Trebuie să fii autentificat.', 'error'); return; }
+              const { data: convId, error } = await supabase.rpc('start_conversation', { p_ad_id: id });
+              if (error || !convId) { addToast('Eroare la deschiderea conversației.', 'error'); return; }
+              router.push(`/mesaje?conv=${convId}`);
+            }}>
+            <MessageCircle className="w-4 h-4" /> Trimite mesaj
+          </Button>
+        </div>
+      )}
+
+      {/* Report modal */}
+      {reportOpen && (
+        <div className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => { setReportOpen(false); setReportReason(''); }}>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-900">Raportează anunțul</h3>
+              <button onClick={() => { setReportOpen(false); setReportReason(''); }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-slate-500 mb-4">Selectează motivul raportării:</p>
+            <div className="flex flex-col gap-2 mb-5">
+              {['Produs fals / înșelătorie', 'Preț incorect / spam', 'Conținut inadecvat', 'Anunț duplicat', 'Altele'].map(reason => (
+                <button key={reason} onClick={() => setReportReason(reason)}
+                  className={cn('px-4 py-2.5 rounded-xl border text-sm text-left transition',
+                    reportReason === reason
+                      ? 'border-red-300 bg-red-50 text-red-600 font-medium'
+                      : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50')}>
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { setReportOpen(false); setReportReason(''); }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition">
+                Anulează
+              </button>
+              <button
+                disabled={!reportReason || reportSubmitting}
+                onClick={async () => {
+                  if (!currentUserId) { addToast('Trebuie să fii autentificat.', 'error'); setReportOpen(false); return; }
+                  setReportSubmitting(true);
+                  await supabase.rpc('report_ad', { p_ad_id: id, p_reason: reportReason });
+                  setReportSubmitting(false);
+                  setReportOpen(false);
+                  setReportReason('');
+                  addToast('Raportul a fost trimis. Mulțumim!', 'success');
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 disabled:opacity-40 transition">
+                {reportSubmitting ? '...' : 'Raportează'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <OfferModal
         open={offerOpen}
