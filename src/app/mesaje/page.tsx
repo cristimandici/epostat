@@ -58,8 +58,10 @@ function MessagesContent() {
   const [sending, setSending] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
+  const [pendingDeleteMsg, setPendingDeleteMsg] = useState<Message | null>(null);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const touchStartX = useRef(0);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
@@ -308,6 +310,19 @@ function MessagesContent() {
     setDeletingMessageId(null);
   };
 
+  const startLongPress = (msg: Message) => {
+    longPressTimer.current = setTimeout(() => setPendingDeleteMsg(msg), 500);
+  };
+  const cancelLongPress = () => {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  };
+  const confirmDelete = async () => {
+    if (!pendingDeleteMsg) return;
+    const msg = pendingDeleteMsg;
+    setPendingDeleteMsg(null);
+    await deleteMessage(msg);
+  };
+
   const filteredConvs = conversations.filter(c =>
     !searchQuery ||
     c.other_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -333,7 +348,15 @@ function MessagesContent() {
         const isMe = msg.sender_id === userId;
         const isDeleting = deletingMessageId === msg.id;
         return (
-          <div key={msg.id} className={cn('flex items-end gap-2 group', isMe ? 'justify-end' : 'justify-start')}>
+          <div
+            key={msg.id}
+            className={cn('flex items-end gap-2 group', isMe ? 'justify-end' : 'justify-start')}
+            onTouchStart={() => isMe && startLongPress(msg)}
+            onTouchEnd={cancelLongPress}
+            onTouchMove={cancelLongPress}
+            onTouchCancel={cancelLongPress}
+            onContextMenu={e => isMe && e.preventDefault()}
+          >
             {!isMe && activeConv && (
               <Link href={`/utilizator/${otherId}`} className="shrink-0 mb-0.5" title={`Vezi profilul ${activeConv.other_name}`}>
                 {activeConv.other_avatar ? (
@@ -348,9 +371,9 @@ function MessagesContent() {
             )}
             {isMe && (
               <button
-                onClick={() => deleteMessage(msg)}
+                onClick={() => setPendingDeleteMsg(msg)}
                 disabled={!!deletingMessageId}
-                className="opacity-30 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition shrink-0 mb-0.5"
+                className="hidden sm:flex opacity-0 group-hover:opacity-100 p-1.5 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition shrink-0 mb-0.5"
                 aria-label="Șterge mesaj"
               >
                 {isDeleting
@@ -459,6 +482,33 @@ function MessagesContent() {
             className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
             onClick={e => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {/* ── DELETE CONFIRMATION ── */}
+      {pendingDeleteMsg && (
+        <div
+          className="fixed inset-0 z-[500] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setPendingDeleteMsg(null)}
+        >
+          <div className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-xs" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-slate-900 text-base mb-1">Ștergi mesajul?</h3>
+            <p className="text-slate-500 text-sm mb-5">Acțiunea nu poate fi anulată.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingDeleteMsg(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition"
+              >
+                Anulează
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition"
+              >
+                Șterge
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
