@@ -30,7 +30,7 @@ interface Message {
   conversation_id: string;
   sender_id: string;
   text: string | null;
-  type?: 'text' | 'image' | 'offer';
+  type?: 'text' | 'image' | 'offer' | 'offer_accepted' | 'offer_rejected';
   media_url?: string | null;
   created_at: string;
 }
@@ -62,6 +62,8 @@ function MessagesContent() {
   const [pendingDeleteMsg, setPendingDeleteMsg] = useState<Message | null>(null);
   const [contextMenuMsg, setContextMenuMsg] = useState<Message | null>(null);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const [counterOfferMsgId, setCounterOfferMsgId] = useState<string | null>(null);
+  const [counterAmount, setCounterAmount] = useState('');
   const touchStartX = useRef(0);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressActivated = useRef(false);
@@ -333,7 +335,25 @@ function MessagesContent() {
     setDeletingMessageId(null);
   };
 
+  const handleAcceptOffer = async (msg: Message) => {
+    if (!activeId) return;
+    await supabase.rpc('send_message', { p_conversation_id: activeId, p_text: msg.text, p_type: 'offer_accepted', p_media_url: null });
+  };
+
+  const handleRejectOffer = async () => {
+    if (!activeId) return;
+    await supabase.rpc('send_message', { p_conversation_id: activeId, p_text: null, p_type: 'offer_rejected', p_media_url: null });
+  };
+
+  const handleCounterOffer = async (amount: number) => {
+    if (!activeId || !amount || amount <= 0) return;
+    await supabase.rpc('send_message', { p_conversation_id: activeId, p_text: String(amount), p_type: 'offer', p_media_url: null });
+    setCounterOfferMsgId(null);
+    setCounterAmount('');
+  };
+
   const startLongPress = (msg: Message) => {
+    if (msg.type === 'offer_accepted' || msg.type === 'offer_rejected') return;
     longPressActivated.current = false;
     longPressTimer.current = setTimeout(() => {
       longPressActivated.current = true;
@@ -376,7 +396,9 @@ function MessagesContent() {
     ? (activeConv.buyer_id === userId ? activeConv.seller_id : activeConv.buyer_id)
     : '';
 
-  const MessageBubbles = () => (
+  const MessageBubbles = () => {
+    const lastOfferId = messages.filter(m => m.type === 'offer').at(-1)?.id;
+    return (
     <>
       {messagesLoading ? (
         <div className="flex-1 flex items-center justify-center">
@@ -390,6 +412,34 @@ function MessagesContent() {
       ) : messages.map(msg => {
         const isMe = msg.sender_id === userId;
         const isDeleting = deletingMessageId === msg.id;
+
+        if (msg.type === 'offer_accepted') {
+          return (
+            <div key={msg.id} className="flex justify-center my-1">
+              <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-2.5 text-center">
+                <p className="text-xs font-bold text-green-700">✓ Ofertă acceptată</p>
+                <p className="text-xs text-green-600 mt-0.5 font-semibold">{Number(msg.text).toLocaleString('ro-RO')} lei</p>
+              </div>
+            </div>
+          );
+        }
+
+        if (msg.type === 'offer_rejected') {
+          return (
+            <div key={msg.id} className="flex justify-center my-1">
+              <div className="bg-slate-100 border border-slate-200 rounded-2xl px-5 py-2.5 text-center">
+                <p className="text-xs font-medium text-slate-500">Ofertă refuzată</p>
+              </div>
+            </div>
+          );
+        }
+
+        const hasOfferResponse = msg.type === 'offer' && messages.some(m =>
+          (m.type === 'offer_accepted' || m.type === 'offer_rejected') &&
+          m.created_at > msg.created_at
+        );
+        const showOfferActions = msg.type === 'offer' && msg.id === lastOfferId && !isMe && !hasOfferResponse;
+
         return (
           <div
             key={msg.id}
@@ -453,6 +503,42 @@ function MessagesContent() {
                   <p className={cn('text-[10px] font-semibold uppercase tracking-wider mb-1', isMe ? 'text-blue-200' : 'text-slate-400')}>Ofertă</p>
                   <p className="text-xl font-black leading-none">{Number(msg.text).toLocaleString('ro-RO')} lei</p>
                   <p className={cn('text-xs mt-2', isMe ? 'text-blue-200' : 'text-slate-400')}>{timeAgo(msg.created_at)}</p>
+                  {showOfferActions && (
+                    <>
+                      <div className="mt-3 pt-3 border-t border-slate-200 flex gap-1.5">
+                        <button onClick={() => handleAcceptOffer(msg)}
+                          className="flex-1 px-2 py-1.5 rounded-lg bg-green-500 text-white text-xs font-bold hover:bg-green-600 transition">
+                          Acceptă
+                        </button>
+                        <button onClick={() => { setCounterOfferMsgId(msg.id); setCounterAmount(''); }}
+                          className="flex-1 px-2 py-1.5 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300 transition">
+                          Contraofertă
+                        </button>
+                        <button onClick={handleRejectOffer}
+                          className="flex-1 px-2 py-1.5 rounded-lg bg-red-100 text-red-600 text-xs font-bold hover:bg-red-200 transition">
+                          Refuză
+                        </button>
+                      </div>
+                      {counterOfferMsgId === msg.id && (
+                        <div className="mt-2 flex gap-1.5" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="number"
+                            value={counterAmount}
+                            onChange={e => setCounterAmount(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') handleCounterOffer(Number(counterAmount)); if (e.key === 'Escape') setCounterOfferMsgId(null); }}
+                            placeholder="Suma (lei)"
+                            className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-0"
+                            style={{ fontSize: '16px' }}
+                            autoFocus
+                          />
+                          <button onClick={() => handleCounterOffer(Number(counterAmount))}
+                            className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition shrink-0">
+                            →
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </>
               ) : (
                 <>
@@ -467,7 +553,8 @@ function MessagesContent() {
         );
       })}
     </>
-  );
+    );
+  };
 
   if (loading) {
     return (
