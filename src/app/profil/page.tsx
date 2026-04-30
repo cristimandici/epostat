@@ -195,10 +195,18 @@ export default function ProfilePage() {
     if (verifyInputRef.current) verifyInputRef.current.value = '';
   };
 
+  const updateAdStatus = async (adId: string, status: 'vandut' | 'activ') => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    const { data, error } = await supabase
+      .from('ads').update({ status }).eq('id', adId).eq('seller_id', user.id).select('id');
+    return !error && data && data.length > 0;
+  };
+
   const handleMarkSold = async (adId: string) => {
     setAdActionLoading(adId + '_sold');
-    const { error } = await supabase.from('ads').update({ status: 'vandut' }).eq('id', adId);
-    if (!error) {
+    const ok = await updateAdStatus(adId, 'vandut');
+    if (ok) {
       const ad = myAds.find(a => a.id === adId);
       if (ad) {
         setMyAds(prev => prev.filter(a => a.id !== adId));
@@ -210,8 +218,8 @@ export default function ProfilePage() {
 
   const handleReactivate = async (adId: string) => {
     setAdActionLoading(adId + '_reactivate');
-    const { error } = await supabase.from('ads').update({ status: 'activ' }).eq('id', adId);
-    if (!error) {
+    const ok = await updateAdStatus(adId, 'activ');
+    if (ok) {
       const ad = soldAds.find(a => a.id === adId);
       if (ad) {
         setSoldAds(prev => prev.filter(a => a.id !== adId));
@@ -223,11 +231,12 @@ export default function ProfilePage() {
 
   const handleDelete = async (adId: string) => {
     setAdActionLoading(adId + '_delete');
-    const { error } = await supabase.from('ads').delete().eq('id', adId);
-    if (!error) {
-      setMyAds(prev => prev.filter(a => a.id !== adId));
-      setSoldAds(prev => prev.filter(a => a.id !== adId));
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('ads').delete().eq('id', adId).eq('seller_id', user.id);
     }
+    setMyAds(prev => prev.filter(a => a.id !== adId));
+    setSoldAds(prev => prev.filter(a => a.id !== adId));
     setConfirmDeleteId(null);
     setAdActionLoading(null);
   };

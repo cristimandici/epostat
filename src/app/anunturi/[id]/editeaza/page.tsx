@@ -100,24 +100,37 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
   const handleSave = async () => {
     if (!validate()) return;
     setSaving(true);
-    const { error } = await supabase.from('ads').update({
-      title,
-      description,
-      condition,
-      category_id: category,
-      price: Number(price),
-      negotiable,
-      city,
-      location: location || null,
-      images: imageUrls,
-    }).eq('id', id);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push('/login'); return; }
 
-    if (error) {
-      setErrors({ submit: `Eroare la salvare: ${error.message}` });
+      const { data, error } = await supabase.from('ads').update({
+        title,
+        description,
+        condition,
+        category_id: category,
+        price: Number(price),
+        negotiable,
+        city,
+        location: location || null,
+        images: imageUrls,
+      }).eq('id', id).eq('seller_id', user.id).select('id');
+
+      if (error) {
+        setErrors({ submit: `Eroare Supabase: ${error.message}` });
+        setSaving(false);
+        return;
+      }
+      if (!data || data.length === 0) {
+        setErrors({ submit: 'Nu ai permisiunea să editezi acest anunț.' });
+        setSaving(false);
+        return;
+      }
+      router.push(`/anunturi/${id}`);
+    } catch (err) {
+      setErrors({ submit: `Eroare de rețea: ${err instanceof Error ? err.message : 'necunoscută'}` });
       setSaving(false);
-      return;
     }
-    router.push(`/anunturi/${id}`);
   };
 
   if (loading) {
