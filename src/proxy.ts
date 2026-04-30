@@ -25,6 +25,15 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Maintenance mode — set NEXT_PUBLIC_MAINTENANCE=true in Vercel to enable
+  if (process.env.NEXT_PUBLIC_MAINTENANCE === 'true') {
+    const path = request.nextUrl.pathname;
+    if (path !== '/in-curand' && !path.startsWith('/api') && !path.startsWith('/auth')) {
+      return NextResponse.redirect(new URL('/in-curand', request.url));
+    }
+    return supabaseResponse;
+  }
+
   const protectedPaths = ['/postare', '/profil', '/mesaje', '/oferte'];
   const isProtected = protectedPaths.some(p => request.nextUrl.pathname.startsWith(p));
 
