@@ -62,8 +62,19 @@ function ListingsContent() {
   const [negotiableOnly, setNegotiableOnly] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [favIds, setFavIds] = useState<Set<string>>(new Set());
 
   const supabase = createClient();
+
+  useEffect(() => {
+    async function loadFavs() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('favorites').select('ad_id').eq('user_id', user.id);
+      setFavIds(new Set((data || []).map(f => f.ad_id as string)));
+    }
+    loadFavs();
+  }, []);
 
   const fetchAds = useCallback(async () => {
     setLoading(true);
@@ -231,7 +242,7 @@ function ListingsContent() {
             </div>
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              {ads.map(ad => <AdCard key={ad.id} ad={ad} />)}
+              {ads.map(ad => <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} />)}
             </div>
           )}
         </div>

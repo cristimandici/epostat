@@ -68,24 +68,23 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [recentAds, setRecentAds] = useState<Ad[]>([]);
   const [nearbyAds, setNearbyAds] = useState<Ad[]>([]);
+  const [favIds, setFavIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function loadAds() {
       const supabase = createClient();
-      const { data } = await supabase
-        .from('ads')
-        .select('*')
-        .eq('status', 'activ')
-        .order('created_at', { ascending: false })
-        .limit(8);
 
+      const [adsRes, userRes] = await Promise.all([
+        supabase.from('ads').select('*').eq('status', 'activ').order('created_at', { ascending: false }).limit(8),
+        supabase.auth.getUser(),
+      ]);
+
+      const data = adsRes.data;
       if (!data || data.length === 0) return;
 
       const sellerIds = [...new Set(data.map(r => r.seller_id as string))];
       const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url, rating, review_count, verified')
-        .in('id', sellerIds);
+        .from('profiles').select('id, name, avatar_url, rating, review_count, verified').in('id', sellerIds);
       const profMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
 
       const ads = data.map(r => {
@@ -95,6 +94,12 @@ export default function HomePage() {
 
       setRecentAds(ads);
       setNearbyAds(ads.filter(a => a.city === 'București' || a.city === 'Cluj-Napoca').slice(0, 4));
+
+      const user = userRes.data.user;
+      if (user) {
+        const { data: favData } = await supabase.from('favorites').select('ad_id').eq('user_id', user.id);
+        setFavIds(new Set((favData || []).map(f => f.ad_id as string)));
+      }
     }
     loadAds();
   }, []);
@@ -206,7 +211,7 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {recentAds.map((ad) => (
-            <AdCard key={ad.id} ad={ad} />
+            <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} />
           ))}
         </div>
       </section>
@@ -225,7 +230,7 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {nearbyAds.map((ad) => (
-              <AdCard key={ad.id} ad={ad} />
+              <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} />
             ))}
           </div>
         </section>

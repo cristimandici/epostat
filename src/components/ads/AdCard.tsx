@@ -6,20 +6,36 @@ import { Ad } from '@/lib/types';
 import { formatPrice, timeAgo, CONDITIONS, CONDITION_COLORS } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
+import { createClient } from '@/lib/supabase/client';
 
 interface AdCardProps {
   ad: Ad;
-  onFavorite?: (id: string) => void;
   favorited?: boolean;
+  onFavoriteToggle?: (id: string, nowFavorited: boolean) => void;
 }
 
-export default function AdCard({ ad, onFavorite, favorited = false }: AdCardProps) {
+export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCardProps) {
   const [isFav, setIsFav] = useState(favorited);
+  const [loading, setLoading] = useState(false);
 
-  const handleFav = (e: React.MouseEvent) => {
+  const handleFav = async (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsFav(!isFav);
-    onFavorite?.(ad.id);
+    if (loading) return;
+    setLoading(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+
+    if (isFav) {
+      await supabase.from('favorites').delete().eq('user_id', user.id).eq('ad_id', ad.id);
+      setIsFav(false);
+      onFavoriteToggle?.(ad.id, false);
+    } else {
+      await supabase.from('favorites').upsert({ user_id: user.id, ad_id: ad.id }, { onConflict: 'user_id,ad_id' });
+      setIsFav(true);
+      onFavoriteToggle?.(ad.id, true);
+    }
+    setLoading(false);
   };
 
   return (
@@ -56,7 +72,8 @@ export default function AdCard({ ad, onFavorite, favorited = false }: AdCardProp
             'absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-150',
             isFav
               ? 'bg-red-500 text-white shadow-md scale-110'
-              : 'bg-white/90 text-slate-400 hover:bg-white hover:text-red-400 shadow'
+              : 'bg-white/90 text-slate-400 hover:bg-white hover:text-red-400 shadow',
+            loading && 'opacity-50 cursor-wait'
           )}
         >
           <Heart className={cn('w-4 h-4', isFav && 'fill-current')} />

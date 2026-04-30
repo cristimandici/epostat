@@ -446,7 +446,16 @@ export default function ProfilePage() {
         <div>
           {favorites.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {favorites.map(ad => <AdCard key={ad.id} ad={ad} favorited />)}
+              {favorites.map(ad => (
+                <AdCard
+                  key={ad.id}
+                  ad={ad}
+                  favorited
+                  onFavoriteToggle={(id, nowFav) => {
+                    if (!nowFav) setFavorites(prev => prev.filter(a => a.id !== id));
+                  }}
+                />
+              ))}
             </div>
           ) : (
             <EmptyState emoji="❤️" title="Nu ai anunțuri favorite"
