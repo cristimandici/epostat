@@ -68,13 +68,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-3 h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0 group" aria-label="epostat.ro – Acasă">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path d="M4 14L8 6L12 11L15 8L17 14H4Z" fill="white" opacity="0.9" />
-                <circle cx="15" cy="5" r="2.5" fill="#F59E0B" />
-              </svg>
-            </div>
+          <Link href="/" className="flex items-center shrink-0 group" aria-label="epostat.ro – Acasă">
             <span className="text-xl font-black text-slate-900 tracking-tight">
               e<span className="text-[#2563EB]">postat</span><span className="text-slate-400 font-normal hidden sm:inline">.ro</span>
             </span>
