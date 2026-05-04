@@ -1,16 +1,18 @@
 'use client';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { Search, Bell, MessageCircle, User, Menu, X, Plus } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Bell, MessageCircle, User, Menu, X, Plus, LogIn } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { createClient } from '@/lib/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [pendingOffers, setPendingOffers] = useState(0);
-  const [userId, setUserId] = useState('');
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -45,23 +47,52 @@ export default function Navbar() {
       }
     }
 
-    async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setUserId(user.id);
-      loadCounts(user.id);
-
-      const channel = supabase
-        .channel(`navbar_counts_${user.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => loadCounts(user.id))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'offers' }, () => loadCounts(user.id))
+    function subscribeRealtime(uid: string) {
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+      channelRef.current = supabase
+        .channel(`navbar_counts_${uid}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => loadCounts(uid))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'offers' }, () => loadCounts(uid))
         .subscribe();
-
-      return () => { supabase.removeChannel(channel); };
     }
 
-    init();
+    function clearState() {
+      setUserId(null);
+      setUnreadMessages(0);
+      setPendingOffers(0);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    }
+
+    // Get initial session
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUserId(user.id);
+        loadCounts(user.id);
+        subscribeRealtime(user.id);
+      }
+    });
+
+    // Listen for auth changes (login / logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUserId(session.user.id);
+        loadCounts(session.user.id);
+        subscribeRealtime(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        clearState();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+    };
   }, []);
+
+  const isLoggedIn = !!userId;
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
@@ -106,37 +137,47 @@ export default function Navbar() {
 
           {/* Nav icons */}
           <div className="ml-auto flex items-center gap-1">
-            <Link
-              href="/mesaje"
-              className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition relative"
-              aria-label="Mesaje"
-            >
-              <MessageCircle className="w-5 h-5" />
-              {unreadMessages > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center leading-none">
-                  {unreadMessages > 9 ? '9+' : unreadMessages}
-                </span>
-              )}
-            </Link>
-            <Link
-              href="/oferte"
-              className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition relative"
-              aria-label="Oferte"
-            >
-              <Bell className="w-5 h-5" />
-              {pendingOffers > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold flex items-center justify-center leading-none">
-                  {pendingOffers > 9 ? '9+' : pendingOffers}
-                </span>
-              )}
-            </Link>
-            <Link
-              href="/profil"
-              className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition"
-              aria-label="Profilul meu"
-            >
-              <User className="w-5 h-5" />
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link
+                  href="/mesaje"
+                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition relative"
+                  aria-label="Mesaje"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  {unreadMessages > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                      {unreadMessages > 9 ? '9+' : unreadMessages}
+                    </span>
+                  )}
+                </Link>
+                <Link
+                  href="/oferte"
+                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition relative"
+                  aria-label="Oferte"
+                >
+                  <Bell className="w-5 h-5" />
+                  {pendingOffers > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                      {pendingOffers > 9 ? '9+' : pendingOffers}
+                    </span>
+                  )}
+                </Link>
+                <Link
+                  href="/profil"
+                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition"
+                  aria-label="Profilul meu"
+                >
+                  <User className="w-5 h-5" />
+                </Link>
+              </>
+            ) : (
+              <Link href="/login" className="hidden sm:flex">
+                <Button variant="secondary" size="sm" className="gap-1.5">
+                  <LogIn className="w-4 h-4" /> Intră în cont
+                </Button>
+              </Link>
+            )}
 
             <Link href="/postare" className="ml-1">
               <Button variant="accent" size="sm" className="gap-1.5 rounded-xl">
@@ -179,35 +220,48 @@ export default function Navbar() {
       {menuOpen && (
         <div className="sm:hidden border-t border-slate-200 bg-white animate-slide-in">
           <nav className="flex flex-col py-2">
-            {[
-              { href: '/profil', label: 'Profilul meu', icon: <User className="w-4 h-4" /> },
-              {
-                href: '/mesaje', label: 'Mesaje', icon: (
-                  <span className="relative">
-                    <MessageCircle className="w-4 h-4" />
-                    {unreadMessages > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">{unreadMessages > 9 ? '9+' : unreadMessages}</span>}
-                  </span>
-                )
-              },
-              {
-                href: '/oferte', label: 'Ofertele mele', icon: (
-                  <span className="relative">
-                    <Bell className="w-4 h-4" />
-                    {pendingOffers > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#F59E0B] text-white text-[9px] font-bold flex items-center justify-center">{pendingOffers > 9 ? '9+' : pendingOffers}</span>}
-                  </span>
-                )
-              },
-            ].map(({ href, label, icon }) => (
+            {isLoggedIn ? (
+              <>
+                {[
+                  { href: '/profil', label: 'Profilul meu', icon: <User className="w-4 h-4" /> },
+                  {
+                    href: '/mesaje', label: 'Mesaje', icon: (
+                      <span className="relative">
+                        <MessageCircle className="w-4 h-4" />
+                        {unreadMessages > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">{unreadMessages > 9 ? '9+' : unreadMessages}</span>}
+                      </span>
+                    )
+                  },
+                  {
+                    href: '/oferte', label: 'Ofertele mele', icon: (
+                      <span className="relative">
+                        <Bell className="w-4 h-4" />
+                        {pendingOffers > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#F59E0B] text-white text-[9px] font-bold flex items-center justify-center">{pendingOffers > 9 ? '9+' : pendingOffers}</span>}
+                      </span>
+                    )
+                  },
+                ].map(({ href, label, icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <span className="text-slate-400">{icon}</span>
+                    {label}
+                  </Link>
+                ))}
+              </>
+            ) : (
               <Link
-                key={href}
-                href={href}
+                href="/login"
                 className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
                 onClick={() => setMenuOpen(false)}
               >
-                <span className="text-slate-400">{icon}</span>
-                {label}
+                <span className="text-slate-400"><LogIn className="w-4 h-4" /></span>
+                Intră în cont
               </Link>
-            ))}
+            )}
           </nav>
         </div>
       )}
