@@ -1,13 +1,15 @@
 'use client';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
-import { Search, Bell, MessageCircle, User, Menu, X, Plus, LogIn } from 'lucide-react';
+import { Search, Bell, MessageCircle, User, Menu, X, Plus, LogIn, Heart } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { createClient } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import FavoritesPanel from '@/components/favorites/FavoritesPanel';
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [favOpen, setFavOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -60,6 +62,7 @@ export default function Navbar() {
       setUserId(null);
       setUnreadMessages(0);
       setPendingOffers(0);
+      setFavOpen(false);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -95,6 +98,8 @@ export default function Navbar() {
   const isLoggedIn = !!userId;
 
   return (
+    <>
+    <FavoritesPanel open={favOpen} onClose={() => setFavOpen(false)} />
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-3 h-16">
@@ -139,6 +144,13 @@ export default function Navbar() {
           <div className="ml-auto flex items-center gap-1">
             {isLoggedIn ? (
               <>
+                <button
+                  onClick={() => setFavOpen(true)}
+                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition"
+                  aria-label="Favorite"
+                >
+                  <Heart className="w-5 h-5" />
+                </button>
                 <Link
                   href="/mesaje"
                   className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition relative"
@@ -222,6 +234,13 @@ export default function Navbar() {
           <nav className="flex flex-col py-2">
             {isLoggedIn ? (
               <>
+                <button
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition w-full text-left"
+                  onClick={() => { setMenuOpen(false); setFavOpen(true); }}
+                >
+                  <span className="text-slate-400"><Heart className="w-4 h-4" /></span>
+                  Favorite
+                </button>
                 {[
                   { href: '/profil', label: 'Profilul meu', icon: <User className="w-4 h-4" /> },
                   {
@@ -266,5 +285,6 @@ export default function Navbar() {
         </div>
       )}
     </header>
+    </>
   );
 }

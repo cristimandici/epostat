@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   BadgeCheck, Star, Edit3, Package, TrendingDown,
-  Heart, ChevronRight, Plus, ShieldCheck, Phone, Mail,
+  ChevronRight, Plus, ShieldCheck, Phone, Mail,
   Save, X, LogOut, Upload, Clock, Pencil, Trash2, CheckCircle2, Eye,
 } from 'lucide-react';
 import AdCard from '@/components/ads/AdCard';
@@ -17,7 +17,6 @@ import { cn } from '@/lib/utils';
 const TABS = [
   { id: 'active', label: 'Active', icon: <Package className="w-4 h-4" /> },
   { id: 'offers', label: 'Oferte', icon: <TrendingDown className="w-4 h-4" /> },
-  { id: 'favorites', label: 'Favorite', icon: <Heart className="w-4 h-4" /> },
   { id: 'sold', label: 'Vândute', icon: <BadgeCheck className="w-4 h-4" /> },
 ];
 
@@ -536,30 +535,6 @@ export default function ProfilePage() {
             <EmptyState emoji="💬" title="Nicio ofertă trimisă"
               desc="Când faci o ofertă pentru un anunț, o vei vedea aici."
               cta="Caută anunțuri" href="/anunturi" />
-          )}
-        </div>
-      )}
-
-      {/* Favorites */}
-      {tab === 'favorites' && (
-        <div>
-          {favorites.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {favorites.map(ad => (
-                <AdCard
-                  key={ad.id}
-                  ad={ad}
-                  favorited
-                  onFavoriteToggle={(id, nowFav) => {
-                    if (!nowFav) setFavorites(prev => prev.filter(a => a.id !== id));
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState emoji="❤️" title="Nu ai anunțuri favorite"
-              desc="Salvează anunțuri apăsând pe inimioara din fiecare card."
-              cta="Explorează anunțuri" href="/anunturi" />
           )}
         </div>
       )}
