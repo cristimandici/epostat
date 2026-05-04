@@ -453,7 +453,7 @@ export default function ProfilePage() {
               onClick={() => setListingsSubTab('active')}
               className={cn('px-3.5 py-1.5 rounded-xl text-sm font-semibold transition',
                 listingsSubTab === 'active'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-slate-700 text-white shadow-sm'
                   : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300')}>
               Active{myAds.length > 0 ? ` · ${myAds.length}` : ''}
             </button>
@@ -537,7 +537,7 @@ export default function ProfilePage() {
                 {draftAds.map(ad => (
                   <div key={ad.id} className="flex flex-col gap-2 bg-white rounded-2xl border border-dashed border-slate-300 overflow-hidden">
                     <div className="aspect-[4/3] bg-slate-100 relative">
-                      {ad.images[0] ? (
+                      {ad.images[0] && ad.images[0] !== PLACEHOLDER ? (
                         <img src={ad.images[0]} alt={ad.title} className="w-full h-full object-cover opacity-80" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-300">
