@@ -123,12 +123,12 @@ function PostPageContent() {
     if (!user) return null;
 
     const payload = {
-      title: f.title || null,
-      description: f.description || null,
-      price: Number(f.price) || null,
+      title: f.title || 'Ciornă',
+      description: f.description || '',
+      price: Number(f.price) || 0,
       negotiable: f.negotiable,
       category_id: f.category || null,
-      condition: f.condition || null,
+      condition: f.condition || 'nou',
       images: f.imageUrls,
       city: f.city || null,
       location: f.location || null,
@@ -136,13 +136,18 @@ function PostPageContent() {
     };
 
     if (draftAdId) {
-      await supabase.from('ads').update(payload).eq('id', draftAdId).eq('seller_id', user.id);
+      const { error } = await supabase.from('ads').update(payload).eq('id', draftAdId).eq('seller_id', user.id);
+      if (error) console.error('Draft update error:', error);
       return draftAdId;
     } else {
       const { data, error } = await supabase.from('ads')
         .insert({ ...payload, seller_id: user.id, status: 'draft' })
         .select('id').single();
-      if (!error && data) { setDraftAdId(data.id); return data.id; }
+      if (error) {
+        console.error('Draft insert error:', error);
+        return null;
+      }
+      if (data) { setDraftAdId(data.id); return data.id; }
       return null;
     }
   }, [draftAdId]);
@@ -232,8 +237,8 @@ function PostPageContent() {
 
   const handleSaveDraft = useCallback(async () => {
     saveDraftToStorage(form);
-    await saveDraftToDB(form);
-    setDraftSaved(true);
+    const id = await saveDraftToDB(form);
+    setDraftSaved(!!id);
     setTimeout(() => setDraftSaved(false), 2000);
   }, [form, saveDraftToDB]);
 
