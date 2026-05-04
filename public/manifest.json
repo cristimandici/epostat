@@ -1,0 +1,17 @@
+{
+  "name": "epostat.ro",
+  "short_name": "epostat",
+  "description": "Piața ta online de anunțuri gratuite",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#F0F4FF",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
