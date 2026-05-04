@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import SearchDropdown from '@/components/search/SearchDropdown';
 import {
-  ArrowRight, Star, Shield, Zap, TrendingUp,
+  ArrowRight, Star, Shield, Zap, TrendingUp, Search,
   Laptop, Car, Home, Shirt, Sofa, Dumbbell, Baby, PawPrint, Wrench, MoreHorizontal,
   ChevronRight, Plus,
 } from 'lucide-react';
