@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { Ad } from '@/lib/types';
 import { formatPrice, timeAgo, CONDITIONS, CONDITION_COLORS } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import Badge from '@/components/ui/Badge';
 import { createClient } from '@/lib/supabase/client';
 
 interface AdCardProps {
@@ -16,6 +15,7 @@ interface AdCardProps {
 
 export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCardProps) {
   const [isFav, setIsFav] = useState(favorited);
+  const [favCount, setFavCount] = useState(ad.favorites ?? 0);
   const [loading, setLoading] = useState(false);
 
   const handleFav = async (e: React.MouseEvent) => {
@@ -29,11 +29,13 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
     if (isFav) {
       await supabase.from('favorites').delete().eq('user_id', user.id).eq('ad_id', ad.id);
       setIsFav(false);
+      setFavCount(c => Math.max(0, c - 1));
       onFavoriteToggle?.(ad.id, false);
     } else {
       const { error: insErr } = await supabase.from('favorites').insert({ user_id: user.id, ad_id: ad.id });
-      if (insErr && insErr.code !== '23505') { setLoading(false); return; } // 23505 = duplicate, safe to ignore
+      if (insErr && insErr.code !== '23505') { setLoading(false); return; }
       setIsFav(true);
+      setFavCount(c => c + 1);
       onFavoriteToggle?.(ad.id, true);
     }
     setLoading(false);
@@ -53,7 +55,7 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
           loading="lazy"
         />
 
-        {/* Badges overlay */}
+        {/* Condition / urgent badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1.5">
           {ad.urgent && (
             <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold shadow">
@@ -65,19 +67,26 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
           </span>
         </div>
 
-        {/* Favorite button */}
+        {/* Favorite pill – bottom right, Buycycle style */}
         <button
           onClick={handleFav}
           aria-label={isFav ? 'Elimină din favorite' : 'Adaugă la favorite'}
           className={cn(
-            'absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-150',
-            isFav
-              ? 'bg-red-500 text-white shadow-md scale-110'
-              : 'bg-white/90 text-slate-400 hover:bg-white hover:text-red-400 shadow',
+            'absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white shadow transition-all duration-150',
             loading && 'opacity-50 cursor-wait'
           )}
         >
-          <Heart className={cn('w-4 h-4', isFav && 'fill-current')} />
+          <Heart
+            className={cn(
+              'w-4 h-4 transition-colors duration-150',
+              isFav ? 'text-red-500 fill-red-500' : 'text-slate-400'
+            )}
+          />
+          {favCount > 0 && (
+            <span className={cn('text-xs font-semibold leading-none', isFav ? 'text-red-500' : 'text-slate-500')}>
+              {favCount}
+            </span>
+          )}
         </button>
 
         {ad.negotiable && (
