@@ -105,10 +105,10 @@ export default function Navbar() {
         <div className="flex items-center gap-3 h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0 group" aria-label="epostat.ro – Acasă">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+            <div className="w-9 h-9 rounded-xl bg-[#2563EB] flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <path d="M4 14L8 6L12 11L15 8L17 14H4Z" fill="white" opacity="0.9" />
-                <circle cx="15" cy="5" r="2.5" fill="#F59E0B" />
+                <circle cx="15" cy="5" r="2.5" fill="white" opacity="0.6" />
               </svg>
             </div>
             <span className="text-xl font-black text-slate-900 tracking-tight hidden sm:block">
@@ -170,7 +170,7 @@ export default function Navbar() {
                 >
                   <Bell className="w-5 h-5" />
                   {pendingOffers > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                    <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#0F172A] text-white text-[10px] font-bold flex items-center justify-center leading-none">
                       {pendingOffers > 9 ? '9+' : pendingOffers}
                     </span>
                   )}
@@ -255,7 +255,7 @@ export default function Navbar() {
                     href: '/oferte', label: 'Ofertele mele', icon: (
                       <span className="relative">
                         <Bell className="w-4 h-4" />
-                        {pendingOffers > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#F59E0B] text-white text-[9px] font-bold flex items-center justify-center">{pendingOffers > 9 ? '9+' : pendingOffers}</span>}
+                        {pendingOffers > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#0F172A] text-white text-[9px] font-bold flex items-center justify-center">{pendingOffers > 9 ? '9+' : pendingOffers}</span>}
                       </span>
                     )
                   },

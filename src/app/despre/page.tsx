@@ -7,10 +7,10 @@ export default function AboutPage() {
       {/* Hero */}
       <div className="text-center mb-14">
         <div className="inline-flex items-center gap-2 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] flex items-center justify-center shadow-lg">
+          <div className="w-12 h-12 rounded-2xl bg-[#2563EB] flex items-center justify-center shadow-lg">
             <svg width="26" height="26" viewBox="0 0 20 20" fill="none">
               <path d="M4 14L8 6L12 11L15 8L17 14H4Z" fill="white" opacity="0.9" />
-              <circle cx="15" cy="5" r="2.5" fill="#F59E0B" />
+              <circle cx="15" cy="5" r="2.5" fill="white" opacity="0.6" />
             </svg>
           </div>
           <span className="text-3xl font-black text-slate-900">e<span className="text-[#2563EB]">postat</span><span className="text-slate-400 font-normal">.ro</span></span>
@@ -26,7 +26,7 @@ export default function AboutPage() {
           { icon: <Target className="w-6 h-6 text-blue-600" />, title: 'Misiunea noastră', desc: 'Să construim cel mai prietenos marketplace din România — unde oricine poate vinde și cumpăra fără bătăi de cap, indiferent de vârstă sau experiența tehnică.' },
           { icon: <Heart className="w-6 h-6 text-red-500" />, title: 'Valorile noastre', desc: 'Transparență, simplitate și comunitate. Credem că tranzacțiile bune se construiesc pe comunicare deschisă și încredere reciprocă.' },
           { icon: <Users className="w-6 h-6 text-green-600" />, title: 'Comunitatea', desc: 'Peste 120.000 de utilizatori activi din toată România. De la studenți care vând haine, la antreprenori care listează utilaje — epostat.ro e pentru toată lumea.' },
-          { icon: <Zap className="w-6 h-6 text-[#F59E0B]" />, title: 'Inovație continuă', desc: 'Sistemul nostru de negociere inspirat din piețele moderne permite cumpărătorilor și vânzătorilor să ajungă rapid la un preț corect pentru ambele părți.' },
+          { icon: <Zap className="w-6 h-6 text-[#2563EB]" />, title: 'Inovație continuă', desc: 'Sistemul nostru de negociere inspirat din piețele moderne permite cumpărătorilor și vânzătorilor să ajungă rapid la un preț corect pentru ambele părți.' },
         ].map(({ icon, title, desc }) => (
           <div key={title} className="bg-white rounded-2xl border border-slate-200/80 p-6 flex gap-4">
             <div className="w-11 h-11 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">{icon}</div>
@@ -55,7 +55,7 @@ export default function AboutPage() {
           { label: 'Anunțuri active', value: '48k+' },
           { label: 'Orașe', value: '250+' },
         ].map(({ label, value }) => (
-          <div key={label} className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-100 p-5 text-center">
+          <div key={label} className="bg-zinc-50 rounded-2xl border border-zinc-200 p-5 text-center">
             <p className="text-3xl font-black text-[#2563EB]">{value}</p>
             <p className="text-sm text-slate-500 mt-1">{label}</p>
           </div>

@@ -361,7 +361,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                       <img src={ad.seller.avatar} alt={ad.seller.name}
                         className="w-12 h-12 rounded-full border-2 border-slate-200 object-cover" />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-black">
+                      <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-white font-black">
                         {ad.seller.name[0]?.toUpperCase()}
                       </div>
                     )}

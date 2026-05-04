@@ -5,15 +5,15 @@
     --primary: #2563EB;
     --primary-light: #3B82F6;
     --primary-dark: #1D4ED8;
-    --accent: #F59E0B;
-    --accent-dark: #D97706;
+    --accent: #0F172A;
+    --accent-dark: #1E293B;
     --success: #10B981;
     --danger: #EF4444;
-    --bg: #F0F4FF;
+    --bg: #F4F4F5;
     --surface: #FFFFFF;
-    --border: #E2E8F0;
+    --border: #E4E4E7;
     --text: #0F172A;
-    --text-muted: #64748B;
+    --text-muted: #71717A;
   }
 }
 

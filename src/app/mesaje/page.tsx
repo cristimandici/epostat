@@ -40,7 +40,7 @@ function Avatar({ name, avatar, size = 'md' }: { name: string; avatar: string | 
   return avatar ? (
     <img src={avatar} alt={name} className={`${cls} rounded-full border border-slate-200 object-cover shrink-0`} />
   ) : (
-    <div className={`${cls} rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shrink-0`}>
+    <div className={`${cls} rounded-full bg-slate-800 flex items-center justify-center text-white font-bold shrink-0`}>
       {name[0]?.toUpperCase()}
     </div>
   );
@@ -406,7 +406,7 @@ function MessagesContent() {
                   <img src={activeConv.other_avatar} alt={activeConv.other_name}
                     className="w-7 h-7 rounded-full border border-slate-200 object-cover hover:opacity-80 transition" />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs hover:opacity-80 transition">
+                  <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold text-xs hover:opacity-80 transition">
                     {activeConv.other_name[0]?.toUpperCase()}
                   </div>
                 )}
@@ -751,7 +751,7 @@ function MessagesContent() {
                   onClick={() => openConversation(conv.id)}
                   className={cn(
                     'w-full text-left p-4 flex gap-3 border-b border-slate-100 hover:bg-slate-50 transition',
-                    activeId === conv.id && 'bg-blue-50 border-blue-100'
+                    activeId === conv.id && 'bg-blue-50 border-zinc-200'
                   )}
                 >
                   <div className="relative shrink-0">

@@ -4,10 +4,10 @@ export default function ComingSoonPage() {
       <div className="text-center max-w-lg">
         {/* Logo */}
         <div className="inline-flex items-center gap-3 mb-10">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] flex items-center justify-center shadow-lg">
+          <div className="w-14 h-14 rounded-2xl bg-[#2563EB] flex items-center justify-center shadow-lg">
             <svg width="30" height="30" viewBox="0 0 20 20" fill="none">
               <path d="M4 14L8 6L12 11L15 8L17 14H4Z" fill="white" opacity="0.9" />
-              <circle cx="15" cy="5" r="2.5" fill="#F59E0B" />
+              <circle cx="15" cy="5" r="2.5" fill="white" opacity="0.6" />
             </svg>
           </div>
           <span className="text-3xl font-black text-white">

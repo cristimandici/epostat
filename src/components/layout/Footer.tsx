@@ -9,10 +9,10 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-[#2563EB] flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <path d="M4 14L8 6L12 11L15 8L17 14H4Z" fill="white" opacity="0.9" />
-                  <circle cx="15" cy="5" r="2.5" fill="#F59E0B" />
+                  <circle cx="15" cy="5" r="2.5" fill="white" opacity="0.6" />
                 </svg>
               </div>
               <span className="text-xl font-black text-white tracking-tight">

@@ -75,7 +75,7 @@ export default function HowItWorksPage() {
       <h2 className="text-2xl font-black text-slate-900 text-center mb-8">De ce epostat.ro?</h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
         {[
-          { icon: <Zap className="w-6 h-6 text-[#F59E0B]" />, title: 'Gratuit pentru totdeauna', desc: 'Postarea anunțurilor este și va rămâne gratuită. Fără comisioane ascunse.' },
+          { icon: <Zap className="w-6 h-6 text-[#2563EB]" />, title: 'Gratuit pentru totdeauna', desc: 'Postarea anunțurilor este și va rămâne gratuită. Fără comisioane ascunse.' },
           { icon: <ShieldCheck className="w-6 h-6 text-green-500" />, title: 'Utilizatori verificați', desc: 'Sistem de verificare prin email și telefon. Știi cu cine faci afaceri.' },
           { icon: <Star className="w-6 h-6 text-blue-500" />, title: 'Sistem de recenzii', desc: 'Recenzii reale de la cumpărători și vânzători verificați.' },
         ].map(({ icon, title, desc }) => (
@@ -87,7 +87,7 @@ export default function HowItWorksPage() {
         ))}
       </div>
 
-      <div className="bg-gradient-to-r from-[#2563EB] to-[#7C3AED] rounded-3xl p-8 text-center text-white">
+      <div className="bg-[#0F172A] rounded-3xl p-8 text-center text-white">
         <h2 className="text-2xl font-black mb-2">Gata să începi?</h2>
         <p className="text-white/70 mb-6">Alătură-te celor 120.000+ utilizatori epostat.ro</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">

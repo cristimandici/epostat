@@ -120,7 +120,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             {avatar ? (
               <img src={avatar} alt={name} className="w-20 h-20 rounded-2xl border-2 border-slate-200 object-cover" />
             ) : (
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-black">
+              <div className="w-20 h-20 rounded-2xl bg-slate-800 flex items-center justify-center text-white text-2xl font-black">
                 {name[0]?.toUpperCase()}
               </div>
             )}

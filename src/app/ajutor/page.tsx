@@ -105,7 +105,7 @@ export default function HelpPage() {
       </div>
 
       {/* Contact */}
-      <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-3xl border border-blue-100 p-8 text-center">
+      <div className="bg-zinc-50 rounded-3xl border border-zinc-200 p-8 text-center">
         <h2 className="text-xl font-black text-slate-900 mb-2">Nu ai găsit răspunsul?</h2>
         <p className="text-slate-500 text-sm mb-6">Echipa noastră îți răspunde în maxim 24 de ore.</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
