@@ -57,27 +57,36 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   MoreHorizontal: <MoreHorizontal className="w-6 h-6" />,
 };
 
-const STATS = [
-  { label: 'Anunțuri active', value: '48.000+' },
-  { label: 'Utilizatori înregistrați', value: '120.000+' },
-  { label: 'Oferte negociate', value: '9.500+' },
-  { label: 'Orașe acoperite', value: '250+' },
-];
+function fmtCount(n: number) {
+  if (n === 0) return '—';
+  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1).replace('.', '.')}k`;
+  return String(n);
+}
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [recentAds, setRecentAds] = useState<Ad[]>([]);
   const [nearbyAds, setNearbyAds] = useState<Ad[]>([]);
   const [favIds, setFavIds] = useState<Set<string>>(new Set());
+  const [stats, setStats] = useState({ ads: 0, users: 0, offers: 0 });
 
   useEffect(() => {
     async function loadAds() {
       const supabase = createClient();
 
-      const [adsRes, userRes] = await Promise.all([
+      const [adsRes, userRes, statsAds, statsUsers, statsOffers] = await Promise.all([
         supabase.from('ads').select('*').eq('status', 'activ').order('created_at', { ascending: false }).limit(10),
         supabase.auth.getUser(),
+        supabase.from('ads').select('id', { count: 'exact', head: true }).eq('status', 'activ'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('offers').select('id', { count: 'exact', head: true }),
       ]);
+
+      setStats({
+        ads: statsAds.count ?? 0,
+        users: statsUsers.count ?? 0,
+        offers: statsOffers.count ?? 0,
+      });
 
       const data = adsRes.data;
       if (!data || data.length === 0) return;
@@ -163,12 +172,17 @@ export default function HomePage() {
       </section>
 
       {/* Stats bar */}
-      <section className="bg-white border-b border-slate-200">
+      <section className="bg-white border-b border-zinc-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {STATS.map(({ label, value }) => (
+          {[
+            { label: 'Anunțuri active', value: fmtCount(stats.ads) },
+            { label: 'Utilizatori înregistrați', value: fmtCount(stats.users) },
+            { label: 'Oferte negociate', value: fmtCount(stats.offers) },
+            { label: 'Orașe acoperite', value: '320' },
+          ].map(({ label, value }) => (
             <div key={label} className="text-center">
-              <p className="text-2xl font-black text-[#2563EB]">{value}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+              <p className="text-2xl font-black text-slate-900">{value}</p>
+              <p className="text-xs text-zinc-400 mt-0.5">{label}</p>
             </div>
           ))}
         </div>
