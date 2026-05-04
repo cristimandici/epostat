@@ -44,10 +44,10 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
   return (
     <Link
       href={`/anunturi/${ad.id}`}
-      className="group bg-white rounded-xl overflow-hidden flex flex-col hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+      className="group flex flex-col hover:-translate-y-0.5 transition-transform duration-200"
     >
-      {/* Image */}
-      <div className="relative overflow-hidden aspect-[4/3] bg-zinc-100">
+      {/* Image – rounded corners on the image itself, not on a white box */}
+      <div className="relative overflow-hidden rounded-xl aspect-[4/3] bg-zinc-200">
         <img
           src={ad.images[0]}
           alt={ad.title}
@@ -55,14 +55,12 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
           loading="lazy"
         />
 
-        {/* Only urgent badge on image – keeps photo clean */}
         {ad.urgent && (
           <span className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold shadow-sm">
             <Zap className="w-3 h-3" /> Urgent
           </span>
         )}
 
-        {/* Favorite pill – bottom right */}
         <button
           onClick={handleFav}
           aria-label={isFav ? 'Elimină din favorite' : 'Adaugă la favorite'}
@@ -85,14 +83,13 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
         </button>
       </div>
 
-      {/* Content */}
-      <div className="p-3 flex flex-col flex-1">
-        <h3 className="font-semibold text-slate-900 text-sm leading-snug line-clamp-2 mb-2">
+      {/* Text sits directly on the page background – no white box */}
+      <div className="pt-2.5 flex flex-col flex-1">
+        <h3 className="font-semibold text-slate-900 text-sm leading-snug line-clamp-2 mb-1.5">
           {ad.title}
         </h3>
 
-        {/* Condition + negotiable as small inline badges below title */}
-        <div className="flex flex-wrap gap-1 mb-2">
+        <div className="flex flex-wrap gap-1 mb-1.5">
           <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-md', CONDITION_COLORS[ad.condition])}>
             {CONDITIONS[ad.condition]}
           </span>
@@ -105,7 +102,7 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
 
         <p className="text-base font-bold text-slate-900">{formatPrice(ad.price)}</p>
 
-        <div className="mt-auto pt-2 flex items-center justify-between text-xs text-slate-400">
+        <div className="mt-auto pt-1.5 flex items-center justify-between text-xs text-slate-400">
           <span className="flex items-center gap-0.5 min-w-0 mr-2">
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{ad.city}</span>
