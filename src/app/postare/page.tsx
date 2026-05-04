@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Tag, FileText, ImagePlus, DollarSign, Check,
   ChevronRight, ChevronLeft, AlertCircle, Upload, X, Sparkles, MapPin,
@@ -182,43 +183,52 @@ export default function PostPage() {
 
   if (publishedId) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-20 text-center">
-        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-          <Check className="w-10 h-10 text-green-500" />
+      <>
+        <TopBar />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="max-w-lg w-full text-center py-16">
+            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+              <Check className="w-10 h-10 text-green-500" />
+            </div>
+            <h1 className="text-3xl font-black text-slate-900 mb-3">E postat! 🎉</h1>
+            <p className="text-slate-500 mb-2">Anunțul tău pentru <strong className="text-slate-800">{form.title}</strong> este acum live.</p>
+            <p className="text-slate-400 text-sm mb-8">Mii de cumpărători îl pot vedea deja.</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button onClick={() => router.push(`/anunturi/${publishedId}`)} variant="primary" size="lg">
+                <Sparkles className="w-4 h-4" /> Vezi anunțul
+              </Button>
+              <Button onClick={() => { setForm(EMPTY_FORM); setStep(1); setPublishedId(null); }} variant="secondary" size="lg">
+                Postează altul
+              </Button>
+            </div>
+          </div>
         </div>
-        <h1 className="text-3xl font-black text-slate-900 mb-3">E postat! 🎉</h1>
-        <p className="text-slate-500 mb-2">Anunțul tău pentru <strong className="text-slate-800">{form.title}</strong> este acum live.</p>
-        <p className="text-slate-400 text-sm mb-8">Mii de cumpărători îl pot vedea deja.</p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={() => router.push(`/anunturi/${publishedId}`)} variant="primary" size="lg">
-            <Sparkles className="w-4 h-4" /> Vezi anunțul
-          </Button>
-          <Button onClick={() => { setForm(EMPTY_FORM); setStep(1); setPublishedId(null); }} variant="secondary" size="lg">
-            Postează altul
-          </Button>
-        </div>
-      </div>
+      </>
     );
   }
 
   const cat = CATEGORIES.find(c => c.id === form.category);
 
   return (
-    <div>
-      {/* ── Thin progress bar ── */}
-      <div className="w-full h-1 bg-slate-200">
+    <>
+      {/* ── Top bar ── */}
+      <TopBar />
+
+      {/* ── Progress bar ── */}
+      <div className="w-full h-2 bg-slate-100 shrink-0">
         <div
           className="h-full bg-[#2563EB] transition-all duration-500 ease-out"
           style={{ width: `${(step / 4) * 100}%` }}
         />
       </div>
 
-      <div className="lg:flex lg:h-[calc(100vh-4.25rem)]">
+      {/* ── Main split ── */}
+      <div className="flex flex-1 overflow-hidden">
 
-        {/* ── LEFT: scrollable form ── */}
-        <div className="lg:flex-1 lg:overflow-y-auto">
-          <div className="max-w-xl mx-auto px-4 sm:px-6 py-8">
-            {/* Breadcrumb steps */}
+        {/* LEFT: scrollable form */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-[560px] mx-auto px-6 sm:px-10 py-10">
+            {/* Breadcrumb */}
             <div className="flex items-center gap-1 text-xs text-slate-400 font-medium mb-3 flex-wrap">
               {['Categorie', 'Detalii', 'Fotografii', 'Preț'].map((label, i) => (
                 <span key={i} className="flex items-center gap-1">
@@ -243,7 +253,7 @@ export default function PostPage() {
               <p className="text-slate-500 text-sm mt-1">Pasul {step} din 4 · Gratuit · Sub 2 minute</p>
             </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
         {/* Step 1: Category */}
         {step === 1 && (
           <div>
@@ -494,72 +504,86 @@ export default function PostPage() {
         </div>
       </div>
 
-          </div>{/* end max-w-xl wrapper */}
-        </div>{/* end left column */}
+            </div>{/* max-w */}
+          </div>{/* left scroll */}
 
-        {/* ── RIGHT: Preview (desktop only) ── */}
-        <div className="hidden lg:flex lg:flex-1 lg:overflow-y-auto border-l border-slate-100 bg-slate-50/50">
-          <div className="w-full max-w-sm mx-auto px-8 py-8">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Previzualizare anunț</p>
-              <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-                {/* Main image */}
-                <div className="aspect-[4/3] bg-slate-100 relative">
-                  {form.imageUrls[0] ? (
-                    <img src={form.imageUrls[0]} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-300">
-                      <ImagePlus className="w-12 h-12" />
-                      <span className="text-xs">Nicio fotografie</span>
-                    </div>
-                  )}
-                  {form.condition && (
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm text-slate-700 shadow-sm">
-                      {CONDITION_LABELS[form.condition]}
-                    </span>
-                  )}
-                  {form.negotiable && (
-                    <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">
-                      Negociabil
-                    </span>
-                  )}
-                </div>
+        {/* Divider */}
+        <div className="hidden lg:block w-px bg-slate-100 shrink-0" />
 
-                {/* Thumbnails */}
-                {form.imageUrls.length > 1 && (
-                  <div className="flex gap-1.5 px-3 py-2 border-b border-slate-100 overflow-x-auto">
-                    {form.imageUrls.slice(0, 5).map((url, i) => (
-                      <img
-                        key={i}
-                        src={url}
-                        alt=""
-                        className={cn('w-10 h-10 object-cover rounded-lg shrink-0', i === 0 && 'ring-2 ring-blue-500')}
-                      />
-                    ))}
+        {/* RIGHT: Preview (desktop only) */}
+        <div className="hidden lg:flex flex-1 overflow-y-auto bg-[#F5F7FA]">
+          <div className="max-w-[560px] mx-auto px-6 sm:px-10 py-10 w-full">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-4">Previzualizare anunț</p>
+            <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+              {/* Main image */}
+              <div className="aspect-[4/3] bg-slate-100 relative">
+                {form.imageUrls[0] ? (
+                  <img src={form.imageUrls[0]} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-300">
+                    <ImagePlus className="w-12 h-12" />
+                    <span className="text-xs">Nicio fotografie</span>
                   </div>
                 )}
+                {form.condition && (
+                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm text-slate-700 shadow-sm">
+                    {CONDITION_LABELS[form.condition]}
+                  </span>
+                )}
+                {form.negotiable && (
+                  <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">
+                    Negociabil
+                  </span>
+                )}
+              </div>
 
-                {/* Details */}
-                <div className="p-4">
-                  <h3 className={cn('font-bold text-slate-900 leading-snug', !form.title && 'text-slate-300 font-normal')}>
-                    {form.title || 'Titlul anunțului...'}
-                  </h3>
-                  <p className={cn('text-2xl font-black mt-1', form.price ? 'text-[#2563EB]' : 'text-slate-200')}>
-                    {form.price ? `${Number(form.price).toLocaleString('ro-RO')} RON` : '— RON'}
-                  </p>
-                  <div className="flex items-center gap-3 mt-3 text-xs text-slate-500 flex-wrap">
-                    {cat && <span>{CAT_ICONS[cat.icon] ?? '📦'} {cat.name}</span>}
-                    {form.city && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" /> {form.city}
-                      </span>
-                    )}
-                  </div>
+              {/* Thumbnails */}
+              {form.imageUrls.length > 1 && (
+                <div className="flex gap-1.5 px-3 py-2 border-b border-slate-100 overflow-x-auto">
+                  {form.imageUrls.slice(0, 5).map((url, i) => (
+                    <img key={i} src={url} alt=""
+                      className={cn('w-10 h-10 object-cover rounded-lg shrink-0', i === 0 && 'ring-2 ring-blue-500')}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Details */}
+              <div className="p-5">
+                <p className={cn('font-bold text-slate-900 text-lg leading-snug', !form.title && 'text-slate-300 font-normal text-base')}>
+                  {form.title || 'Titlul anunțului...'}
+                </p>
+                <p className={cn('text-3xl font-black mt-1', form.price ? 'text-[#2563EB]' : 'text-slate-200')}>
+                  {form.price ? `${Number(form.price).toLocaleString('ro-RO')} RON` : '— RON'}
+                </p>
+                <div className="flex items-center gap-3 mt-4 text-sm text-slate-500 flex-wrap">
+                  {cat && <span className="flex items-center gap-1">{CAT_ICONS[cat.icon] ?? '📦'} {cat.name}</span>}
+                  {form.city && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5" /> {form.city}
+                    </span>
+                  )}
                 </div>
               </div>
+            </div>
           </div>
         </div>
 
       </div>
+    </>
+  );
+}
+
+function TopBar() {
+  return (
+    <div className="flex items-center justify-between px-6 h-14 border-b border-slate-100 shrink-0 bg-white">
+      <Link href="/" className="text-lg font-black text-slate-900 tracking-tight">
+        e<span className="text-[#2563EB]">postat</span><span className="text-slate-400 font-normal">.ro</span>
+      </Link>
+      <Link href="/" aria-label="Închide"
+        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
+        <X className="w-5 h-5" />
+      </Link>
     </div>
   );
 }
