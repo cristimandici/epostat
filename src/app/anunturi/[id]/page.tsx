@@ -405,7 +405,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
         {related.length > 0 && (
           <section className="mt-12">
             <h2 className="text-xl font-black text-slate-900 mb-5">Anunțuri similare</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {related.map(a => <AdCard key={a.id} ad={a} />)}
             </div>
           </section>

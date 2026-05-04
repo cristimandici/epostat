@@ -221,7 +221,7 @@ function ListingsContent() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-pulse">
                   <div className="aspect-[4/3] bg-slate-200" />
@@ -241,7 +241,7 @@ function ListingsContent() {
               <Button variant="outline" onClick={clearFilters}>Resetează filtrele</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {ads.map(ad => <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} />)}
             </div>
           )}

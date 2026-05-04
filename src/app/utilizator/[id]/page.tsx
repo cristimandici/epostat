@@ -175,7 +175,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
           <p className="text-slate-500 text-sm">Acest utilizator nu are anunțuri active momentan.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {ads.map(ad => <AdCard key={ad.id} ad={ad} />)}
         </div>
       )}

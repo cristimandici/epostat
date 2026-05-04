@@ -75,7 +75,7 @@ export default function HomePage() {
       const supabase = createClient();
 
       const [adsRes, userRes] = await Promise.all([
-        supabase.from('ads').select('*').eq('status', 'activ').order('created_at', { ascending: false }).limit(8),
+        supabase.from('ads').select('*').eq('status', 'activ').order('created_at', { ascending: false }).limit(10),
         supabase.auth.getUser(),
       ]);
 
@@ -209,7 +209,7 @@ export default function HomePage() {
             Vezi toate <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {recentAds.map((ad) => (
             <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} />
           ))}
@@ -228,7 +228,7 @@ export default function HomePage() {
               Vezi toate <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {nearbyAds.map((ad) => (
               <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} />
             ))}
