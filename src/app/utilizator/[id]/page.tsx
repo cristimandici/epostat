@@ -56,8 +56,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
       const { data: { user } } = await supabase.auth.getUser();
       if (user) setCurrentUserId(user.id);
 
-      // Redirect to own profile if viewing self
-      if (user && user.id === id) { router.replace('/profil'); return; }
 
       const { data: prof } = await supabase
         .from('profiles')
