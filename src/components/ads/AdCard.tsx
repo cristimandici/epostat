@@ -44,7 +44,7 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
   return (
     <Link
       href={`/anunturi/${ad.id}`}
-      className="group flex flex-col hover:-translate-y-0.5 transition-transform duration-200"
+      className="group flex flex-col rounded-xl ring-1 ring-transparent hover:ring-zinc-200 hover:shadow-sm transition-all duration-200"
     >
       {/* Image – rounded corners on the image itself, not on a white box */}
       <div className="relative overflow-hidden rounded-xl aspect-[4/3] bg-zinc-200">
