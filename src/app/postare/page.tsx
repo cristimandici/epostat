@@ -1,9 +1,10 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Check, ChevronDown, AlertCircle, Upload, X, Sparkles, MapPin, ImagePlus,
+  BookmarkCheck, RotateCcw, Trash2,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { CATEGORIES } from '@/lib/data';
@@ -58,6 +59,28 @@ const EMPTY_FORM: FormData = {
   price: '', negotiable: false, city: '', location: '', phone: '',
 };
 
+const DRAFT_KEY = 'epostat_post_draft';
+
+function hasMeaningfulData(form: FormData): boolean {
+  return !!(form.category || form.title || form.description || form.imageUrls.length || form.price);
+}
+
+function saveDraftToStorage(form: FormData) {
+  const { imageFiles: _, ...rest } = form;
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...rest, savedAt: Date.now() }));
+}
+
+function loadDraftFromStorage(): (Omit<FormData, 'imageFiles'> & { savedAt?: number }) | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+
 export default function PostPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,21 +92,85 @@ export default function PostPage() {
   const [loading, setLoading] = useState(false);
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
   const [previewIdx, setPreviewIdx] = useState(0);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [draftBanner, setDraftBanner] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
 
   const set = (key: keyof FormData, value: unknown) =>
     setForm((p) => ({ ...p, [key]: value }));
 
+  // Load draft and prefill phone/city from profile
   useEffect(() => {
+    const draft = loadDraftFromStorage();
+    if (draft && hasMeaningfulData({ ...draft, imageFiles: [] })) {
+      setDraftBanner(true);
+    }
+
     async function prefillFromProfile() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase.from('profiles').select('phone, city').eq('id', user.id).single();
-      if (data?.phone) set('phone', data.phone as string);
-      if (data?.city) set('city', data.city as string);
+      setForm(p => ({
+        ...p,
+        phone: p.phone || (data?.phone as string) || '',
+        city: p.city || (data?.city as string) || '',
+      }));
     }
     prefillFromProfile();
   }, []);
+
+  // Warn on browser close/refresh if form has data
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasMeaningfulData(form)) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [form]);
+
+  const handleSaveDraft = useCallback(() => {
+    saveDraftToStorage(form);
+    setDraftSaved(true);
+    setTimeout(() => setDraftSaved(false), 2000);
+  }, [form]);
+
+  const handleLoadDraft = () => {
+    const draft = loadDraftFromStorage();
+    if (!draft) return;
+    setForm({ ...EMPTY_FORM, ...draft });
+    setDraftBanner(false);
+  };
+
+  const handleDiscardDraft = () => {
+    clearDraft();
+    setDraftBanner(false);
+  };
+
+  // X / leave button clicked
+  const handleLeave = () => {
+    if (hasMeaningfulData(form)) {
+      setShowLeaveModal(true);
+    } else {
+      clearDraft();
+      router.push('/');
+    }
+  };
+
+  const handleModalSaveDraft = () => {
+    saveDraftToStorage(form);
+    setShowLeaveModal(false);
+    router.push('/');
+  };
+
+  const handleModalDiscard = () => {
+    clearDraft();
+    setShowLeaveModal(false);
+    router.push('/');
+  };
 
   const isComplete = (s: number): boolean => {
     if (s === 1) return !!form.category;
@@ -196,6 +283,7 @@ export default function PostPage() {
       await supabase.from('profiles').update({ phone: form.phone }).eq('id', user.id);
     }
 
+    clearDraft();
     setPublishedId(data.id);
     setLoading(false);
   };
@@ -203,7 +291,7 @@ export default function PostPage() {
   if (publishedId) {
     return (
       <>
-        <TopBar />
+        <TopBar onLeave={handleLeave} onSaveDraft={handleSaveDraft} hasDraft={false} draftSaved={false} />
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="max-w-lg w-full text-center py-16">
             <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
@@ -232,8 +320,51 @@ export default function PostPage() {
 
   return (
     <>
+      {/* Leave / save-draft modal */}
+      {showLeaveModal && (
+        <>
+          <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-[2px] animate-fade-in" />
+          <div className="fixed inset-0 z-[71] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 animate-slide-up">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0">
+                    <BookmarkCheck className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <h2 className="font-bold text-slate-900 text-lg leading-tight">Salvezi progresul?</h2>
+                </div>
+                <button onClick={() => setShowLeaveModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100 transition text-slate-400 shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                Ciorna ta va fi salvată. Poți continua oricând de unde ai rămas.
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleModalSaveDraft}
+                  className="w-full py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition">
+                  Salvează ciornă
+                </button>
+                <button
+                  onClick={handleModalDiscard}
+                  className="w-full py-3 rounded-2xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-sm transition flex items-center justify-center gap-2">
+                  <Trash2 className="w-4 h-4 text-red-400" /> Renunță la anunț
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* ── Top bar ── */}
-      <TopBar />
+      <TopBar
+        onLeave={handleLeave}
+        onSaveDraft={handleSaveDraft}
+        hasDraft={hasMeaningfulData(form)}
+        draftSaved={draftSaved}
+      />
 
       {/* ── Progress bar ── */}
       <div className="w-full h-2 bg-slate-100 shrink-0">
@@ -255,11 +386,31 @@ export default function PostPage() {
               <p className="text-slate-500 text-sm mt-1">Gratuit · Sub 2 minute</p>
             </div>
 
+            {/* Draft resume banner */}
+            {draftBanner && (
+              <div className="mb-5 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3.5">
+                <RotateCcw className="w-5 h-5 text-blue-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-blue-900">Ai o ciornă salvată</p>
+                  <p className="text-xs text-blue-600 mt-0.5">Continui de unde ai rămas?</p>
+                </div>
+                <button
+                  onClick={handleLoadDraft}
+                  className="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition shrink-0">
+                  Continuă
+                </button>
+                <button
+                  onClick={handleDiscardDraft}
+                  className="p-1.5 rounded-xl text-blue-400 hover:text-blue-600 hover:bg-blue-100 transition shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             {/* Accordion */}
             <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm divide-y divide-slate-100 overflow-hidden">
               {SECTIONS.map(s => (
                 <div key={s.id}>
-                  {/* Section header */}
                   <button
                     onClick={() => toggleStep(s.id)}
                     className="flex items-center gap-4 w-full px-6 py-4 text-left hover:bg-slate-50/70 transition-colors"
@@ -282,7 +433,6 @@ export default function PostPage() {
                     <ChevronDown className={cn('w-5 h-5 text-slate-400 transition-transform shrink-0', openStep === s.id && 'rotate-180')} />
                   </button>
 
-                  {/* Section content */}
                   {openStep === s.id && (
                     <div className="px-6 pb-6 pt-2">
 
@@ -507,7 +657,6 @@ export default function PostPage() {
                         </div>
                       )}
 
-                      {/* Continue button (not shown in last section) */}
                       {s.id < 4 && (
                         <button
                           onClick={() => continueStep(s.id)}
@@ -533,7 +682,7 @@ export default function PostPage() {
             </button>
 
           </div>
-        </div>{/* left scroll */}
+        </div>
 
         {/* Divider */}
         <div className="hidden lg:block w-px bg-slate-100 shrink-0" />
@@ -543,7 +692,6 @@ export default function PostPage() {
           <div className="w-full px-10 py-10">
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-4">Previzualizare anunț</p>
             <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-              {/* Main image */}
               <div className="aspect-[4/3] bg-slate-100 relative">
                 {form.imageUrls[previewIdx] ? (
                   <img src={form.imageUrls[previewIdx]} alt="Preview" className="w-full h-full object-cover" />
@@ -565,7 +713,6 @@ export default function PostPage() {
                 )}
               </div>
 
-              {/* Thumbnails – clickable */}
               {form.imageUrls.length > 0 && (
                 <div className="flex gap-2 px-4 py-3 border-b border-slate-100 overflow-x-auto">
                   {form.imageUrls.slice(0, 8).map((url, i) => (
@@ -581,7 +728,6 @@ export default function PostPage() {
                 </div>
               )}
 
-              {/* Details */}
               <div className="p-6">
                 <p className={cn('font-bold text-slate-900 text-xl leading-snug', !form.title && 'text-slate-300 font-normal text-lg')}>
                   {form.title || 'Titlul anunțului...'}
@@ -607,16 +753,40 @@ export default function PostPage() {
   );
 }
 
-function TopBar() {
+function TopBar({ onLeave, onSaveDraft, hasDraft, draftSaved }: {
+  onLeave: () => void;
+  onSaveDraft: () => void;
+  hasDraft: boolean;
+  draftSaved: boolean;
+}) {
   return (
     <div className="flex items-center justify-between px-6 h-14 border-b border-slate-100 shrink-0 bg-white">
       <Link href="/" className="text-lg font-black text-slate-900 tracking-tight">
         e<span className="text-[#2563EB]">postat</span><span className="text-slate-400 font-normal">.ro</span>
       </Link>
-      <Link href="/" aria-label="Închide"
-        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
-        <X className="w-5 h-5" />
-      </Link>
+      <div className="flex items-center gap-2">
+        {hasDraft && (
+          <button
+            onClick={onSaveDraft}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold border transition',
+              draftSaved
+                ? 'border-green-200 bg-green-50 text-green-700'
+                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+            )}
+          >
+            <BookmarkCheck className="w-4 h-4" />
+            {draftSaved ? 'Salvat!' : 'Salvează ciornă'}
+          </button>
+        )}
+        <button
+          onClick={onLeave}
+          aria-label="Închide"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
     </div>
   );
 }
