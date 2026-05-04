@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   BadgeCheck, Star, Edit3, Package, TrendingDown,
   Heart, ChevronRight, Plus, ShieldCheck, Phone, Mail,
-  Save, X, LogOut, Upload, Clock, Pencil, Trash2, CheckCircle2,
+  Save, X, LogOut, Upload, Clock, Pencil, Trash2, CheckCircle2, Eye,
 } from 'lucide-react';
 import AdCard from '@/components/ads/AdCard';
 import Button from '@/components/ui/Button';
@@ -328,6 +328,14 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex gap-2 shrink-0">
+                <Link href={`/utilizator/${userId}`} className="relative group">
+                  <button className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition">
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-medium bg-slate-800 text-white px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition pointer-events-none z-10">
+                    Cum te văd cumpărătorii
+                  </span>
+                </Link>
                 <Button variant="secondary" size="sm" onClick={() => setEditing(true)} className="gap-1.5">
                   <Edit3 className="w-4 h-4" /> Editează
                 </Button>

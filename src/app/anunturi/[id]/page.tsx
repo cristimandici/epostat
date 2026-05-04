@@ -354,7 +354,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
 
               {/* Seller card */}
               <div className="bg-white rounded-3xl border border-slate-200/80 p-5 mt-4">
-                <Link href={`/utilizator/${ad.seller.id}`}
+                <Link href={currentUserId === ad.seller.id ? '/profil' : `/utilizator/${ad.seller.id}`}
                   className="flex items-center gap-3 mb-4 group rounded-2xl hover:bg-slate-50 transition -mx-1 px-1 py-1">
                   <div className="relative shrink-0">
                     {ad.seller.avatar ? (
