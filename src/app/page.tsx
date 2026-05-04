@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import SearchDropdown from '@/components/search/SearchDropdown';
 import {
-  Search, ArrowRight, Star, Shield, Zap, TrendingUp,
+  ArrowRight, Star, Shield, Zap, TrendingUp,
   Laptop, Car, Home, Shirt, Sofa, Dumbbell, Baby, PawPrint, Wrench, MoreHorizontal,
   ChevronRight, Plus,
 } from 'lucide-react';
@@ -64,7 +65,6 @@ function fmtCount(n: number) {
 }
 
 export default function HomePage() {
-  const [searchQuery, setSearchQuery] = useState('');
   const [recentAds, setRecentAds] = useState<Ad[]>([]);
   const [nearbyAds, setNearbyAds] = useState<Ad[]>([]);
   const [favIds, setFavIds] = useState<Set<string>>(new Set());
@@ -133,30 +133,11 @@ export default function HomePage() {
           <p className="text-lg text-white/60 mb-10 max-w-xl mx-auto">
             Publică un anunț în 2 minute, negociază direct cu cumpărătorii și vinde mai rapid ca oricând.
           </p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              window.location.href = searchQuery
-                ? `/anunturi?q=${encodeURIComponent(searchQuery)}`
-                : '/anunturi';
-            }}
-            className="flex max-w-2xl mx-auto gap-3"
-          >
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Ce cauți astăzi? ex: bicicletă, telefon, canapea..."
-                className="w-full pl-12 pr-4 py-4 rounded-2xl text-slate-900 text-base shadow-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition"
-                aria-label="Caută anunțuri"
-              />
-            </div>
-            <Button type="submit" variant="primary" size="xl" className="rounded-2xl shrink-0 shadow-xl">
-              Caută
-            </Button>
-          </form>
+          <SearchDropdown
+            placeholder="Ce cauți astăzi? ex: bicicletă, telefon, canapea..."
+            size="hero"
+            className="max-w-2xl mx-auto"
+          />
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             {['iPhone', 'Bicicletă', 'Laptop', 'Canapea', 'Mașină'].map((q) => (
               <Link
@@ -178,7 +159,7 @@ export default function HomePage() {
             { label: 'Anunțuri active', value: fmtCount(stats.ads) },
             { label: 'Utilizatori înregistrați', value: fmtCount(stats.users) },
             { label: 'Oferte negociate', value: fmtCount(stats.offers) },
-            { label: 'Orașe acoperite', value: '320' },
+            { label: 'Orașe acoperite', value: '300+' },
           ].map(({ label, value }) => (
             <div key={label} className="text-center">
               <p className="text-2xl font-black text-slate-900">{value}</p>

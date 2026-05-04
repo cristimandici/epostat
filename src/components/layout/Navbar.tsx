@@ -1,16 +1,16 @@
 'use client';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
-import { Search, Bell, MessageCircle, User, Menu, X, Plus, LogIn, Heart } from 'lucide-react';
+import { Bell, MessageCircle, User, Menu, X, Plus, LogIn, Heart, Search } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { createClient } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import FavoritesPanel from '@/components/favorites/FavoritesPanel';
+import SearchDropdown from '@/components/search/SearchDropdown';
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [favOpen, setFavOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [pendingOffers, setPendingOffers] = useState(0);
@@ -117,28 +117,10 @@ export default function Navbar() {
           </Link>
 
           {/* Search bar – desktop */}
-          <form
-            onSubmit={e => { e.preventDefault(); if (searchQuery) window.location.href = `/anunturi?q=${encodeURIComponent(searchQuery)}`; }}
+          <SearchDropdown
+            placeholder="Ce cauți? ex: iPhone, bicicletă, canapea..."
             className="hidden md:flex flex-1 max-w-xl mx-4"
-          >
-            <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Ce cauți? ex: iPhone, bicicletă, canapea..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent transition"
-                aria-label="Caută anunțuri"
-              />
-            </div>
-            <button
-              type="submit"
-              className="ml-2 px-4 py-2.5 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition"
-            >
-              Caută
-            </button>
-          </form>
+          />
 
           {/* Nav icons */}
           <div className="ml-auto flex items-center gap-1">
@@ -213,18 +195,7 @@ export default function Navbar() {
 
         {/* Mobile search */}
         <div className="md:hidden pb-3">
-          <form onSubmit={e => { e.preventDefault(); if (searchQuery) window.location.href = `/anunturi?q=${encodeURIComponent(searchQuery)}`; }}>
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Ce cauți astăzi?"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-              />
-            </div>
-          </form>
+          <SearchDropdown placeholder="Ce cauți astăzi?" />
         </div>
       </div>
 
