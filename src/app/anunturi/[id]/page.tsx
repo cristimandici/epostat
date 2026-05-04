@@ -299,7 +299,11 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                 {ad.status !== 'vandut' && (
                   <div className="flex flex-col gap-3">
                     {ad.negotiable && (
-                      <Button variant="outline" size="lg" fullWidth className="gap-2" onClick={() => setOfferOpen(true)}>
+                      <Button variant="outline" size="lg" fullWidth className="gap-2" onClick={() => {
+                        if (!currentUserId) { addToast('Trebuie să fii autentificat pentru a face o ofertă.', 'error'); return; }
+                        if (currentUserId === ad.seller.id) { addToast('Nu poți trimite o ofertă la propriul anunț.', 'info'); return; }
+                        setOfferOpen(true);
+                      }}>
                         <TrendingDown className="w-5 h-5" /> Fă o ofertă
                       </Button>
                     )}
