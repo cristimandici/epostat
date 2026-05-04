@@ -15,7 +15,7 @@ import { Ad } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const TABS = [
-  { id: 'active', label: 'Active', icon: <Package className="w-4 h-4" /> },
+  { id: 'active', label: 'Listările mele', icon: <Package className="w-4 h-4" /> },
   { id: 'offers', label: 'Oferte', icon: <TrendingDown className="w-4 h-4" /> },
   { id: 'sold', label: 'Vândute', icon: <BadgeCheck className="w-4 h-4" /> },
 ];
@@ -75,10 +75,12 @@ export default function ProfilePage() {
   const supabase = createClient();
 
   const [tab, setTab] = useState('active');
+  const [listingsSubTab, setListingsSubTab] = useState<'active' | 'draft'>('active');
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userId, setUserId] = useState('');
   const [myAds, setMyAds] = useState<Ad[]>([]);
+  const [draftAds, setDraftAds] = useState<Ad[]>([]);
   const [soldAds, setSoldAds] = useState<Ad[]>([]);
   const [favorites, setFavorites] = useState<Ad[]>([]);
   const [offers, setOffers] = useState<Array<{ id: string; status: string; current_amount: number; original_price: number; created_at: string; ads: { title: string; images: string[] } | null }>>([]);
@@ -134,6 +136,7 @@ export default function ProfilePage() {
       const allAds = (adsRes.data || []) as Record<string, unknown>[];
       setMyAds(allAds.filter(a => a.status === 'activ').map(a => mapAd({ ...a, ...sellerMeta })));
       setSoldAds(allAds.filter(a => a.status === 'vandut').map(a => mapAd({ ...a, ...sellerMeta })));
+      setDraftAds(allAds.filter(a => a.status === 'draft').map(a => mapAd({ ...a, ...sellerMeta })));
 
       const adIds = ((favIdsRes.data || []) as Record<string, unknown>[]).map(f => f.ad_id as string);
       if (adIds.length > 0) {
@@ -441,69 +444,142 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* Active ads */}
+      {/* Listings tab (active + drafts) */}
       {tab === 'active' && (
         <div>
-          <div className="flex justify-between items-center mb-4">
-            <p className="text-sm text-slate-500"><strong className="text-slate-900">{myAds.length}</strong> anunțuri active</p>
+          {/* Sub-tab filter */}
+          <div className="flex items-center gap-2 mb-5">
+            <button
+              onClick={() => setListingsSubTab('active')}
+              className={cn('px-3.5 py-1.5 rounded-xl text-sm font-semibold transition',
+                listingsSubTab === 'active'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300')}>
+              Active{myAds.length > 0 ? ` · ${myAds.length}` : ''}
+            </button>
+            <button
+              onClick={() => setListingsSubTab('draft')}
+              className={cn('px-3.5 py-1.5 rounded-xl text-sm font-semibold transition',
+                listingsSubTab === 'draft'
+                  ? 'bg-slate-700 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300')}>
+              Ciorne{draftAds.length > 0 ? ` · ${draftAds.length}` : ''}
+            </button>
+            <div className="flex-1" />
             <Link href="/postare">
               <Button size="sm" className="gap-1.5"><Plus className="w-4 h-4" /> Anunț nou</Button>
             </Link>
           </div>
-          {myAds.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {myAds.map(ad => (
-                <div key={ad.id} className="flex flex-col gap-2">
-                  <AdCard
-                    ad={ad}
-                    favorited={favorites.some(f => f.id === ad.id)}
-                    onFavoriteToggle={(id, nowFav) => {
-                      if (nowFav) setFavorites(prev => prev.some(f => f.id === id) ? prev : [...prev, ad]);
-                      else setFavorites(prev => prev.filter(f => f.id !== id));
-                    }}
-                  />
-                  {confirmDeleteId === ad.id ? (
-                    <div className="flex gap-1.5 px-1">
-                      <span className="text-xs text-slate-500 flex-1 flex items-center">Sigur ștergi?</span>
-                      <button
-                        onClick={() => handleDelete(ad.id)}
-                        disabled={adActionLoading === ad.id + '_delete'}
-                        className="px-2 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition disabled:opacity-50">
-                        {adActionLoading === ad.id + '_delete' ? '...' : 'Șterge'}
-                      </button>
-                      <button onClick={() => setConfirmDeleteId(null)}
-                        className="px-2 py-1 rounded-lg bg-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-300 transition">
-                        Nu
-                      </button>
+
+          {/* Active ads */}
+          {listingsSubTab === 'active' && (
+            myAds.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {myAds.map(ad => (
+                  <div key={ad.id} className="flex flex-col gap-2">
+                    <AdCard
+                      ad={ad}
+                      favorited={favorites.some(f => f.id === ad.id)}
+                      onFavoriteToggle={(id, nowFav) => {
+                        if (nowFav) setFavorites(prev => prev.some(f => f.id === id) ? prev : [...prev, ad]);
+                        else setFavorites(prev => prev.filter(f => f.id !== id));
+                      }}
+                    />
+                    {confirmDeleteId === ad.id ? (
+                      <div className="flex gap-1.5 px-1">
+                        <span className="text-xs text-slate-500 flex-1 flex items-center">Sigur ștergi?</span>
+                        <button
+                          onClick={() => handleDelete(ad.id)}
+                          disabled={adActionLoading === ad.id + '_delete'}
+                          className="px-2 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition disabled:opacity-50">
+                          {adActionLoading === ad.id + '_delete' ? '...' : 'Șterge'}
+                        </button>
+                        <button onClick={() => setConfirmDeleteId(null)}
+                          className="px-2 py-1 rounded-lg bg-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-300 transition">
+                          Nu
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-1.5 px-1">
+                        <Link href={`/anunturi/${ad.id}/editeaza`} className="flex-1">
+                          <button className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium hover:bg-slate-50 transition">
+                            <Pencil className="w-3 h-3" /> Editează
+                          </button>
+                        </Link>
+                        <button
+                          onClick={() => handleMarkSold(ad.id)}
+                          disabled={adActionLoading === ad.id + '_sold'}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-green-200 text-green-700 text-xs font-medium hover:bg-green-50 transition disabled:opacity-50">
+                          <CheckCircle2 className="w-3 h-3" />
+                          {adActionLoading === ad.id + '_sold' ? '...' : 'Vândut'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(ad.id)}
+                          className="px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 text-xs font-medium hover:bg-red-50 transition">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState emoji="📦" title="Nu ai niciun anunț activ"
+                desc="Postează primul tău anunț gratuit și ajunge la mii de cumpărători!"
+                cta="Postează primul anunț" href="/postare" />
+            )
+          )}
+
+          {/* Draft ads */}
+          {listingsSubTab === 'draft' && (
+            draftAds.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {draftAds.map(ad => (
+                  <div key={ad.id} className="flex flex-col gap-2 bg-white rounded-2xl border border-dashed border-slate-300 overflow-hidden">
+                    <div className="aspect-[4/3] bg-slate-100 relative">
+                      {ad.images[0] ? (
+                        <img src={ad.images[0]} alt={ad.title} className="w-full h-full object-cover opacity-80" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <Package className="w-10 h-10" />
+                        </div>
+                      )}
+                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-white uppercase tracking-wide">
+                        Ciornă
+                      </span>
                     </div>
-                  ) : (
-                    <div className="flex gap-1.5 px-1">
-                      <Link href={`/anunturi/${ad.id}/editeaza`} className="flex-1">
-                        <button className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium hover:bg-slate-50 transition">
-                          <Pencil className="w-3 h-3" /> Editează
+                    <div className="px-3 pb-1">
+                      <p className="font-semibold text-sm text-slate-800 line-clamp-1">
+                        {ad.title || <span className="text-slate-400 font-normal italic">Fără titlu</span>}
+                      </p>
+                      <p className={cn('text-sm font-black mt-0.5', ad.price ? 'text-[#2563EB]' : 'text-slate-300')}>
+                        {ad.price ? formatPrice(ad.price) : '— RON'}
+                      </p>
+                    </div>
+                    <div className="flex gap-1.5 px-3 pb-3">
+                      <Link href={`/postare?draft=${ad.id}`} className="flex-1">
+                        <button className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition">
+                          <Pencil className="w-3 h-3" /> Continuă
                         </button>
                       </Link>
                       <button
-                        onClick={() => handleMarkSold(ad.id)}
-                        disabled={adActionLoading === ad.id + '_sold'}
-                        className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-green-200 text-green-700 text-xs font-medium hover:bg-green-50 transition disabled:opacity-50">
-                        <CheckCircle2 className="w-3 h-3" />
-                        {adActionLoading === ad.id + '_sold' ? '...' : 'Vândut'}
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeleteId(ad.id)}
+                        onClick={async () => {
+                          const supabase = createClient();
+                          await supabase.from('ads').delete().eq('id', ad.id).eq('seller_id', userId);
+                          setDraftAds(prev => prev.filter(a => a.id !== ad.id));
+                        }}
                         className="px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 text-xs font-medium hover:bg-red-50 transition">
                         <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState emoji="📦" title="Nu ai niciun anunț activ"
-              desc="Postează primul tău anunț gratuit și ajunge la mii de cumpărători!"
-              cta="Postează primul anunț" href="/postare" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState emoji="📝" title="Nicio ciornă salvată"
+                desc="Când salvezi un anunț neterminat, îl găsești aici pentru a-l continua."
+                cta="Postează anunț" href="/postare" />
+            )
           )}
         </div>
       )}

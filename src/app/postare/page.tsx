@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Check, ChevronDown, AlertCircle, Upload, X, Sparkles, MapPin, ImagePlus,
@@ -83,6 +83,7 @@ function clearDraft() {
 
 export default function PostPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [openStep, setOpenStep] = useState<number | null>(1);
   const [visited, setVisited] = useState<Set<number>>(new Set());
@@ -95,6 +96,7 @@ export default function PostPage() {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [draftBanner, setDraftBanner] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
+  const [draftAdId, setDraftAdId] = useState<string | null>(null);
 
   // Keep a ref so popstate handler always sees latest form
   const formRef = useRef(form);
@@ -106,11 +108,73 @@ export default function PostPage() {
   const set = (key: keyof FormData, value: unknown) =>
     setForm((p) => ({ ...p, [key]: value }));
 
-  // Load draft and prefill phone/city from profile
+  // Save draft to DB (insert or update)
+  const saveDraftToDB = useCallback(async (f: FormData): Promise<string | null> => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const payload = {
+      title: f.title || null,
+      description: f.description || null,
+      price: Number(f.price) || null,
+      negotiable: f.negotiable,
+      category_id: f.category || null,
+      condition: f.condition || null,
+      images: f.imageUrls,
+      city: f.city || null,
+      location: f.location || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (draftAdId) {
+      await supabase.from('ads').update(payload).eq('id', draftAdId).eq('seller_id', user.id);
+      return draftAdId;
+    } else {
+      const { data, error } = await supabase.from('ads')
+        .insert({ ...payload, seller_id: user.id, status: 'draft' })
+        .select('id').single();
+      if (!error && data) { setDraftAdId(data.id); return data.id; }
+      return null;
+    }
+  }, [draftAdId]);
+
+  // Load draft from DB (?draft=id) or localStorage
   useEffect(() => {
-    const draft = loadDraftFromStorage();
-    if (draft && hasMeaningfulData({ ...draft, imageFiles: [] })) {
-      setDraftBanner(true);
+    const draftId = searchParams.get('draft');
+
+    async function loadDraftFromDB(id: string) {
+      const supabase = createClient();
+      const { data } = await supabase.from('ads').select('*').eq('id', id).single();
+      if (!data) return;
+      setDraftAdId(id);
+      setForm({
+        category: (data.category_id as string) || '',
+        title: (data.title as string) || '',
+        condition: (data.condition as string) || '',
+        description: (data.description as string) || '',
+        imageFiles: [],
+        imageUrls: (data.images as string[]) || [],
+        price: data.price ? String(data.price) : '',
+        negotiable: (data.negotiable as boolean) || false,
+        city: (data.city as string) || '',
+        location: (data.location as string) || '',
+        phone: '',
+      });
+      // Open first incomplete step
+      if (!data.category_id) setOpenStep(1);
+      else if (!data.title || !data.condition || !data.description) setOpenStep(2);
+      else if (!((data.images as string[])?.length >= 3)) setOpenStep(3);
+      else setOpenStep(4);
+    }
+
+    if (draftId) {
+      loadDraftFromDB(draftId);
+    } else {
+      const draft = loadDraftFromStorage();
+      if (draft && hasMeaningfulData({ ...draft, imageFiles: [] })) {
+        setDraftBanner(true);
+      }
     }
 
     async function prefillFromProfile() {
@@ -125,6 +189,7 @@ export default function PostPage() {
       }));
     }
     prefillFromProfile();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Intercept browser back button
@@ -157,11 +222,12 @@ export default function PostPage() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [form]);
 
-  const handleSaveDraft = useCallback(() => {
+  const handleSaveDraft = useCallback(async () => {
     saveDraftToStorage(form);
+    await saveDraftToDB(form);
     setDraftSaved(true);
     setTimeout(() => setDraftSaved(false), 2000);
-  }, [form]);
+  }, [form, saveDraftToDB]);
 
   const handleLoadDraft = () => {
     const draft = loadDraftFromStorage();
@@ -197,14 +263,20 @@ export default function PostPage() {
     }
   };
 
-  const handleModalSaveDraft = () => {
+  const handleModalSaveDraft = async () => {
     saveDraftToStorage(form);
+    await saveDraftToDB(form);
     setShowLeaveModal(false);
     doLeave();
   };
 
-  const handleModalDiscard = () => {
+  const handleModalDiscard = async () => {
     clearDraft();
+    // Delete from DB if saved
+    if (draftAdId) {
+      const supabase = createClient();
+      await supabase.from('ads').delete().eq('id', draftAdId);
+    }
     setShowLeaveModal(false);
     doLeave();
   };
@@ -296,7 +368,7 @@ export default function PostPage() {
       return;
     }
 
-    const { data, error } = await supabase.from('ads').insert({
+    const adPayload = {
       title: form.title,
       description: form.description,
       price: Number(form.price),
@@ -306,14 +378,21 @@ export default function PostPage() {
       images: form.imageUrls,
       city: form.city,
       location: form.location || null,
-      seller_id: user.id,
       status: 'activ',
-    }).select('id').single();
+      updated_at: new Date().toISOString(),
+    };
 
-    if (error) {
-      setErrors({ submit: error.message });
-      setLoading(false);
-      return;
+    let adId: string;
+    if (draftAdId) {
+      const { error } = await supabase.from('ads').update(adPayload).eq('id', draftAdId).eq('seller_id', user.id);
+      if (error) { setErrors({ submit: error.message }); setLoading(false); return; }
+      adId = draftAdId;
+    } else {
+      const { data, error } = await supabase.from('ads')
+        .insert({ ...adPayload, seller_id: user.id })
+        .select('id').single();
+      if (error) { setErrors({ submit: error.message }); setLoading(false); return; }
+      adId = data.id;
     }
 
     if (form.phone) {
@@ -321,7 +400,7 @@ export default function PostPage() {
     }
 
     clearDraft();
-    setPublishedId(data.id);
+    setPublishedId(adId);
     setLoading(false);
   };
 
