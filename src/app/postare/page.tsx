@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Tag, FileText, ImagePlus, DollarSign, Check,
-  ChevronRight, ChevronLeft, AlertCircle, Upload, X, Sparkles,
+  ChevronRight, ChevronLeft, AlertCircle, Upload, X, Sparkles, MapPin,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { CATEGORIES } from '@/lib/data';
@@ -31,6 +31,11 @@ const CAT_ICONS: Record<string, string> = {
   'Laptop': '💻', 'Car': '🚗', 'Home': '🏠', 'Shirt': '👗',
   'Sofa': '🛋️', 'Dumbbell': '🏋️', 'Baby': '🧸', 'PawPrint': '🐾',
   'Wrench': '🔧',
+};
+
+const CONDITION_LABELS: Record<string, string> = {
+  'nou': 'Nou', 'ca-nou': 'Ca nou', 'buna-stare': 'Stare bună',
+  'uzura-normala': 'Uzură normală', 'necesita-reparatii': 'Necesită reparații',
 };
 
 interface FormData {
@@ -196,42 +201,47 @@ export default function PostPage() {
     );
   }
 
+  const cat = CATEGORIES.find(c => c.id === form.category);
+
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-black text-slate-900 mb-1">Postează un anunț nou</h1>
-        <p className="text-slate-500 text-sm">Gratuit · Durează sub 2 minute</p>
+    <div>
+      {/* ── Thin progress bar ── */}
+      <div className="w-full h-1 bg-slate-200">
+        <div
+          className="h-full bg-[#2563EB] transition-all duration-500 ease-out"
+          style={{ width: `${(step / 4) * 100}%` }}
+        />
       </div>
 
-      {/* Progress */}
-      <div className="mb-8">
-        <div className="flex items-center gap-0">
-          {STEPS.map((s, i) => (
-            <div key={s.id} className="flex items-center flex-1 last:flex-none">
-              <div className="flex flex-col items-center">
-                <div className={cn(
-                  'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all',
-                  step > s.id ? 'bg-green-500 text-white' : step === s.id ? 'bg-[#2563EB] text-white shadow-lg scale-110' : 'bg-slate-200 text-slate-500'
-                )}>
-                  {step > s.id ? <Check className="w-5 h-5" /> : s.icon}
-                </div>
-                <span className={cn('text-xs mt-1.5 font-medium hidden sm:block', step === s.id ? 'text-blue-600' : step > s.id ? 'text-green-600' : 'text-slate-400')}>
-                  {s.label}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-12 lg:items-start">
+
+          {/* ── LEFT: Form ── */}
+          <div>
+            {/* Breadcrumb steps */}
+            <div className="flex items-center gap-1 text-xs text-slate-400 font-medium mb-3 flex-wrap">
+              {['Categorie', 'Detalii', 'Fotografii', 'Preț'].map((label, i) => (
+                <span key={i} className="flex items-center gap-1">
+                  {i > 0 && <ChevronRight className="w-3 h-3 shrink-0" />}
+                  <span className={cn(
+                    step === i + 1 ? 'text-slate-800 font-semibold' :
+                    step > i + 1 ? 'text-green-600' : ''
+                  )}>
+                    {step > i + 1 ? '✓ ' : ''}{label}
+                  </span>
                 </span>
-              </div>
-              {i < STEPS.length - 1 && (
-                <div className={cn('flex-1 h-0.5 mx-2 transition-all', step > s.id ? 'bg-green-400' : 'bg-slate-200')} />
-              )}
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="mt-3 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-[#2563EB] to-[#7C3AED] rounded-full transition-all duration-500"
-            style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
-          />
-        </div>
-      </div>
+
+            <div className="mb-6">
+              <h1 className="text-2xl font-black text-slate-900">
+                {step === 1 && 'Ce vinzi?'}
+                {step === 2 && 'Detalii produs'}
+                {step === 3 && 'Fotografii'}
+                {step === 4 && 'Preț și publicare'}
+              </h1>
+              <p className="text-slate-500 text-sm mt-1">Pasul {step} din 4 · Gratuit · Sub 2 minute</p>
+            </div>
 
       <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
         {/* Step 1: Category */}
@@ -440,7 +450,72 @@ export default function PostPage() {
         </div>
       </div>
 
-      <p className="text-center text-xs text-slate-400 mt-4">💾 Progresul tău este salvat automat</p>
+          </div>{/* end left column */}
+
+          {/* ── RIGHT: Preview (desktop only) ── */}
+          <div className="hidden lg:block">
+            <div className="sticky top-24">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Previzualizare anunț</p>
+              <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+                {/* Main image */}
+                <div className="aspect-[4/3] bg-slate-100 relative">
+                  {form.imageUrls[0] ? (
+                    <img src={form.imageUrls[0]} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-300">
+                      <ImagePlus className="w-12 h-12" />
+                      <span className="text-xs">Nicio fotografie</span>
+                    </div>
+                  )}
+                  {form.condition && (
+                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm text-slate-700 shadow-sm">
+                      {CONDITION_LABELS[form.condition]}
+                    </span>
+                  )}
+                  {form.negotiable && (
+                    <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">
+                      Negociabil
+                    </span>
+                  )}
+                </div>
+
+                {/* Thumbnails */}
+                {form.imageUrls.length > 1 && (
+                  <div className="flex gap-1.5 px-3 py-2 border-b border-slate-100 overflow-x-auto">
+                    {form.imageUrls.slice(0, 5).map((url, i) => (
+                      <img
+                        key={i}
+                        src={url}
+                        alt=""
+                        className={cn('w-10 h-10 object-cover rounded-lg shrink-0', i === 0 && 'ring-2 ring-blue-500')}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Details */}
+                <div className="p-4">
+                  <h3 className={cn('font-bold text-slate-900 leading-snug', !form.title && 'text-slate-300 font-normal')}>
+                    {form.title || 'Titlul anunțului...'}
+                  </h3>
+                  <p className={cn('text-2xl font-black mt-1', form.price ? 'text-[#2563EB]' : 'text-slate-200')}>
+                    {form.price ? `${Number(form.price).toLocaleString('ro-RO')} RON` : '— RON'}
+                  </p>
+                  <div className="flex items-center gap-3 mt-3 text-xs text-slate-500 flex-wrap">
+                    {cat && <span>{CAT_ICONS[cat.icon] ?? '📦'} {cat.name}</span>}
+                    {form.city && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> {form.city}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>{/* end grid */}
+      </div>{/* end container */}
     </div>
   );
 }
