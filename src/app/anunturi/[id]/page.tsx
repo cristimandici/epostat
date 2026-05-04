@@ -101,6 +101,13 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
       const mapped = mapAd(combined as Record<string, unknown>);
       setAd(mapped);
 
+      // Track recently viewed (for homepage section)
+      try {
+        const existing = JSON.parse(localStorage.getItem('epostat_viewed') || '[]') as string[];
+        const updated = [id, ...existing.filter((i: string) => i !== id)].slice(0, 12);
+        localStorage.setItem('epostat_viewed', JSON.stringify(updated));
+      } catch {}
+
       // Increment views
       supabase.from('ads').update({ views: (adRow.views || 0) + 1 }).eq('id', id);
 
