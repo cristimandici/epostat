@@ -96,6 +96,13 @@ export default function PostPage() {
   const [draftBanner, setDraftBanner] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
 
+  // Keep a ref so popstate handler always sees latest form
+  const formRef = useRef(form);
+  useEffect(() => { formRef.current = form; }, [form]);
+
+  // Track leave source so we know how to navigate away after modal confirm
+  const leaveSourceRef = useRef<'button' | 'back'>('button');
+
   const set = (key: keyof FormData, value: unknown) =>
     setForm((p) => ({ ...p, [key]: value }));
 
@@ -118,6 +125,24 @@ export default function PostPage() {
       }));
     }
     prefillFromProfile();
+  }, []);
+
+  // Intercept browser back button
+  useEffect(() => {
+    // Push a fake history entry so we can catch the back gesture
+    window.history.pushState(null, '', window.location.pathname);
+
+    const handlePopState = () => {
+      if (hasMeaningfulData(formRef.current)) {
+        // Re-push to keep user on this page while modal is shown
+        window.history.pushState(null, '', window.location.pathname);
+        leaveSourceRef.current = 'back';
+        setShowLeaveModal(true);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   // Warn on browser close/refresh if form has data
@@ -150,26 +175,38 @@ export default function PostPage() {
     setDraftBanner(false);
   };
 
+  // Navigate away after modal confirm (accounts for fake history entry)
+  const doLeave = useCallback(() => {
+    if (leaveSourceRef.current === 'back') {
+      // We pushed 2 fake entries: the initial one + the one during intercept
+      // go(-2) lands on the real previous page
+      window.history.go(-2);
+    } else {
+      router.back();
+    }
+  }, [router]);
+
   // X / leave button clicked
   const handleLeave = () => {
     if (hasMeaningfulData(form)) {
+      leaveSourceRef.current = 'button';
       setShowLeaveModal(true);
     } else {
       clearDraft();
-      router.push('/');
+      router.back();
     }
   };
 
   const handleModalSaveDraft = () => {
     saveDraftToStorage(form);
     setShowLeaveModal(false);
-    router.push('/');
+    doLeave();
   };
 
   const handleModalDiscard = () => {
     clearDraft();
     setShowLeaveModal(false);
-    router.push('/');
+    doLeave();
   };
 
   const isComplete = (s: number): boolean => {
