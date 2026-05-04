@@ -99,21 +99,17 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
           {formatPrice(ad.price)}
         </p>
 
-        <div className="mt-auto flex items-center justify-between pt-2 border-t border-slate-100">
-          <div className="flex items-center gap-1 text-slate-400 text-xs">
-            <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate max-w-[100px]">{ad.city}</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-400 text-xs">
-            <span className="flex items-center gap-0.5">
-              <Clock className="w-3 h-3" />
-              {timeAgo(ad.postedAt)}
-            </span>
-            <span className="flex items-center gap-0.5">
-              <Eye className="w-3 h-3" />
-              {ad.views}
-            </span>
-          </div>
+        <div className="mt-auto flex items-center gap-1 pt-2 border-t border-slate-100 text-slate-400 text-xs overflow-hidden">
+          <MapPin className="w-3 h-3 shrink-0" />
+          <span className="truncate min-w-0 flex-1">{ad.city}</span>
+          <span className="flex items-center gap-0.5 shrink-0 whitespace-nowrap">
+            <Clock className="w-3 h-3" />
+            {timeAgo(ad.postedAt)}
+          </span>
+          <span className="flex items-center gap-0.5 shrink-0">
+            <Eye className="w-3 h-3" />
+            {ad.views}
+          </span>
         </div>
       </div>
     </Link>
