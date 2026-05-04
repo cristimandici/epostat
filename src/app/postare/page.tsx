@@ -68,6 +68,7 @@ export default function PostPage() {
   const [publishedId, setPublishedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+  const [previewIdx, setPreviewIdx] = useState(0);
 
   const set = (key: keyof FormData, value: unknown) =>
     setForm((p) => ({ ...p, [key]: value }));
@@ -137,8 +138,10 @@ export default function PostPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removeImage = (i: number) =>
+  const removeImage = (i: number) => {
     set('imageUrls', form.imageUrls.filter((_, idx) => idx !== i));
+    setPreviewIdx(p => (p >= i && p > 0 ? p - 1 : p));
+  };
 
   const handlePublish = async () => {
     if (!validate()) return;
@@ -218,7 +221,7 @@ export default function PostPage() {
       <div className="w-full h-2 bg-slate-100 shrink-0">
         <div
           className="h-full bg-[#2563EB] transition-all duration-500 ease-out"
-          style={{ width: `${(step / 4) * 100}%` }}
+          style={{ width: `${((step - 1) / 4) * 100}%` }}
         />
       </div>
 
@@ -512,55 +515,60 @@ export default function PostPage() {
 
         {/* RIGHT: Preview (desktop only) */}
         <div className="hidden lg:flex flex-1 overflow-y-auto bg-[#F5F7FA]">
-          <div className="max-w-[560px] mx-auto px-6 sm:px-10 py-10 w-full">
+          <div className="w-full px-10 py-10">
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-4">Previzualizare anunț</p>
             <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
               {/* Main image */}
               <div className="aspect-[4/3] bg-slate-100 relative">
-                {form.imageUrls[0] ? (
-                  <img src={form.imageUrls[0]} alt="Preview" className="w-full h-full object-cover" />
+                {form.imageUrls[previewIdx] ? (
+                  <img src={form.imageUrls[previewIdx]} alt="Preview" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-300">
-                    <ImagePlus className="w-12 h-12" />
-                    <span className="text-xs">Nicio fotografie</span>
+                    <ImagePlus className="w-16 h-16" />
+                    <span className="text-sm">Nicio fotografie</span>
                   </div>
                 )}
                 {form.condition && (
-                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm text-slate-700 shadow-sm">
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm text-slate-700 shadow-sm">
                     {CONDITION_LABELS[form.condition]}
                   </span>
                 )}
                 {form.negotiable && (
-                  <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">
+                  <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-600 text-white">
                     Negociabil
                   </span>
                 )}
               </div>
 
-              {/* Thumbnails */}
-              {form.imageUrls.length > 1 && (
-                <div className="flex gap-1.5 px-3 py-2 border-b border-slate-100 overflow-x-auto">
-                  {form.imageUrls.slice(0, 5).map((url, i) => (
-                    <img key={i} src={url} alt=""
-                      className={cn('w-10 h-10 object-cover rounded-lg shrink-0', i === 0 && 'ring-2 ring-blue-500')}
-                    />
+              {/* Thumbnails – clickable */}
+              {form.imageUrls.length > 0 && (
+                <div className="flex gap-2 px-4 py-3 border-b border-slate-100 overflow-x-auto">
+                  {form.imageUrls.slice(0, 8).map((url, i) => (
+                    <button key={i} onClick={() => setPreviewIdx(i)}
+                      className={cn(
+                        'w-14 h-14 rounded-xl overflow-hidden shrink-0 border-2 transition-all',
+                        previewIdx === i ? 'border-[#2563EB] shadow-sm' : 'border-transparent hover:border-slate-300'
+                      )}
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </button>
                   ))}
                 </div>
               )}
 
               {/* Details */}
-              <div className="p-5">
-                <p className={cn('font-bold text-slate-900 text-lg leading-snug', !form.title && 'text-slate-300 font-normal text-base')}>
+              <div className="p-6">
+                <p className={cn('font-bold text-slate-900 text-xl leading-snug', !form.title && 'text-slate-300 font-normal text-lg')}>
                   {form.title || 'Titlul anunțului...'}
                 </p>
-                <p className={cn('text-3xl font-black mt-1', form.price ? 'text-[#2563EB]' : 'text-slate-200')}>
+                <p className={cn('text-3xl font-black mt-2', form.price ? 'text-[#2563EB]' : 'text-slate-200')}>
                   {form.price ? `${Number(form.price).toLocaleString('ro-RO')} RON` : '— RON'}
                 </p>
-                <div className="flex items-center gap-3 mt-4 text-sm text-slate-500 flex-wrap">
-                  {cat && <span className="flex items-center gap-1">{CAT_ICONS[cat.icon] ?? '📦'} {cat.name}</span>}
+                <div className="flex items-center gap-4 mt-4 text-sm text-slate-500 flex-wrap">
+                  {cat && <span className="flex items-center gap-1.5">{CAT_ICONS[cat.icon] ?? '📦'} {cat.name}</span>}
                   {form.city && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5" /> {form.city}
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4" /> {form.city}
                     </span>
                   )}
                 </div>
