@@ -7,12 +7,6 @@ export default function AboutPage() {
       {/* Hero */}
       <div className="text-center mb-14">
         <div className="inline-flex items-center gap-2 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-[#2563EB] flex items-center justify-center shadow-lg">
-            <svg width="26" height="26" viewBox="0 0 20 20" fill="none">
-              <path d="M4 14L8 6L12 11L15 8L17 14H4Z" fill="white" opacity="0.9" />
-              <circle cx="15" cy="5" r="2.5" fill="white" opacity="0.6" />
-            </svg>
-          </div>
           <span className="text-3xl font-black text-slate-900">e<span className="text-[#2563EB]">postat</span><span className="text-slate-400 font-normal">.ro</span></span>
         </div>
         <h1 className="text-4xl font-black text-slate-900 mb-4">Povestea noastră</h1>

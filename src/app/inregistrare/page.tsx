@@ -77,13 +77,7 @@ export default function RegisterPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-[#2563EB] flex items-center justify-center shadow">
-              <svg width="22" height="22" viewBox="0 0 20 20" fill="none">
-                <path d="M4 14L8 6L12 11L15 8L17 14H4Z" fill="white" opacity="0.9" />
-                <circle cx="15" cy="5" r="2.5" fill="white" opacity="0.6" />
-              </svg>
-            </div>
+          <Link href="/" className="inline-flex items-center">
             <span className="text-2xl font-black text-slate-900">e<span className="text-[#2563EB]">postat</span><span className="text-slate-400 font-normal">.ro</span></span>
           </Link>
           <h1 className="text-2xl font-black text-slate-900 mt-5 mb-1">Creează cont gratuit</h1>

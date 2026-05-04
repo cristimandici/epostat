@@ -1,7 +1,6 @@
 'use client';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import SearchDropdown from '@/components/search/SearchDropdown';
 import {
   ArrowRight, Star, Shield, Zap, TrendingUp, Search,
   Laptop, Car, Home, Shirt, Sofa, Dumbbell, Baby, PawPrint, Wrench, MoreHorizontal,
@@ -121,34 +120,18 @@ export default function HomePage() {
           <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-[#2563EB]/8 blur-3xl" />
           <div className="absolute bottom-0 -left-16 w-80 h-80 rounded-full bg-[#2563EB]/5 blur-3xl" />
         </div>
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white/80 text-sm font-medium mb-6 backdrop-blur-sm border border-white/10">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14 text-center">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white/80 text-sm font-medium mb-5 backdrop-blur-sm border border-white/10">
             <Zap className="w-3.5 h-3.5 text-[#2563EB]" />
             Gratuit · Rapid · De încredere
           </span>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight mb-5">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight mb-4">
             Piața ta online,<br />
             <span className="text-[#2563EB]">simplă și prietenoasă</span>
           </h1>
-          <p className="text-lg text-white/60 mb-10 max-w-xl mx-auto">
+          <p className="text-base text-white/60 max-w-xl mx-auto">
             Publică un anunț în 2 minute, negociază direct cu cumpărătorii și vinde mai rapid ca oricând.
           </p>
-          <SearchDropdown
-            placeholder="Ce cauți astăzi? ex: bicicletă, telefon, canapea..."
-            size="hero"
-            className="max-w-2xl mx-auto"
-          />
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {['iPhone', 'Bicicletă', 'Laptop', 'Canapea', 'Mașină'].map((q) => (
-              <Link
-                key={q}
-                href={`/anunturi?q=${encodeURIComponent(q)}`}
-                className="px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white text-sm transition backdrop-blur-sm"
-              >
-                {q}
-              </Link>
-            ))}
-          </div>
         </div>
       </section>
 
