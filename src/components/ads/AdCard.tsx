@@ -42,14 +42,14 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
   return (
     <Link
       href={`/anunturi/${ad.id}`}
-      className="group bg-white rounded-2xl border border-zinc-200/80 overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex flex-col"
+      className="group bg-white rounded-xl overflow-hidden border border-transparent hover:border-zinc-300 transition-all duration-150 flex flex-col"
     >
       {/* Image */}
-      <div className="relative overflow-hidden aspect-[4/3] bg-slate-100">
+      <div className="relative overflow-hidden aspect-[4/3] bg-zinc-100">
         <img
           src={ad.images[0]}
           alt={ad.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover transition-transform duration-300"
           loading="lazy"
         />
 
@@ -95,11 +95,11 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
           {ad.title}
         </h3>
 
-        <p className="text-xl font-black text-[#2563EB] mt-0.5">
+        <p className="text-base font-semibold text-slate-900 mt-0.5">
           {formatPrice(ad.price)}
         </p>
 
-        <div className="mt-auto flex items-center justify-between pt-2 border-t border-slate-100">
+        <div className="mt-auto flex items-center justify-between pt-2 border-t border-zinc-100">
           <div className="flex items-center gap-1 text-slate-400 text-xs">
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate max-w-[100px]">{ad.city}</span>
