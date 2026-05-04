@@ -10,6 +10,12 @@ export const metadata: Metadata = {
   title: { default: "epostat.ro – Anunțuri online", template: "%s | epostat.ro" },
   description: "Piața ta online de anunțuri gratuite. Cumpără, vinde și negociează produse second-hand sau noi în România.",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: "/icon.svg",
+    shortcut: "/icon.svg",
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
