@@ -111,10 +111,12 @@ export default function Navbar() {
           </Link>
 
           {/* Search bar – desktop */}
-          <SearchDropdown
-            placeholder="Ce cauți? ex: iPhone, bicicletă, canapea..."
-            className="hidden md:flex flex-1 mx-6"
-          />
+          <div className="hidden md:flex flex-1 justify-center min-w-0 px-4">
+            <SearchDropdown
+              placeholder="Ce cauți? ex: iPhone, bicicletă, canapea..."
+              className="w-full max-w-2xl"
+            />
+          </div>
 
           {/* Nav icons */}
           <div className="flex items-center gap-1 shrink-0">
