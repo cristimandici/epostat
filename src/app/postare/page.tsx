@@ -213,11 +213,11 @@ export default function PostPage() {
         />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-12 lg:items-start">
+      <div className="lg:flex lg:h-[calc(100vh-4.25rem)]">
 
-          {/* ── LEFT: Form ── */}
-          <div>
+        {/* ── LEFT: scrollable form ── */}
+        <div className="lg:flex-1 lg:overflow-y-auto">
+          <div className="max-w-xl mx-auto px-4 sm:px-6 py-8">
             {/* Breadcrumb steps */}
             <div className="flex items-center gap-1 text-xs text-slate-400 font-medium mb-3 flex-wrap">
               {['Categorie', 'Detalii', 'Fotografii', 'Preț'].map((label, i) => (
@@ -494,11 +494,12 @@ export default function PostPage() {
         </div>
       </div>
 
-          </div>{/* end left column */}
+          </div>{/* end max-w-xl wrapper */}
+        </div>{/* end left column */}
 
-          {/* ── RIGHT: Preview (desktop only) ── */}
-          <div className="hidden lg:block">
-            <div className="sticky top-24">
+        {/* ── RIGHT: Preview (desktop only) ── */}
+        <div className="hidden lg:flex lg:flex-1 lg:overflow-y-auto border-l border-slate-100 bg-slate-50/50">
+          <div className="w-full max-w-sm mx-auto px-8 py-8">
               <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Previzualizare anunț</p>
               <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
                 {/* Main image */}
@@ -555,11 +556,10 @@ export default function PostPage() {
                   </div>
                 </div>
               </div>
-            </div>
           </div>
+        </div>
 
-        </div>{/* end grid */}
-      </div>{/* end container */}
+      </div>
     </div>
   );
 }
