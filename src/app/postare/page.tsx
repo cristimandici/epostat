@@ -91,7 +91,7 @@ export default function PostPage() {
       if (!form.condition) e.condition = 'Selectează starea produsului.';
       if (!form.description || form.description.length < 20) e.description = 'Adaugă o descriere mai detaliată (min. 20 caractere).';
     }
-    if (step === 3 && form.imageUrls.length === 0) e.images = 'Adaugă cel puțin o fotografie 📸';
+    if (step === 3 && form.imageUrls.length < 3) e.images = 'Adaugă cel puțin 3 fotografii 📸';
     if (step === 4) {
       if (!form.price || isNaN(Number(form.price)) || Number(form.price) <= 0) e.price = 'Introdu un preț valid.';
       if (!form.city) e.city = 'Alege un oraș.';
@@ -128,7 +128,7 @@ export default function PostPage() {
 
       if (!error) {
         const { data: { publicUrl } } = supabase.storage.from('ad-images').getPublicUrl(path);
-        set('imageUrls', [...form.imageUrls, publicUrl]);
+        setForm(prev => ({ ...prev, imageUrls: [...prev.imageUrls, publicUrl] }));
         setErrors((p) => ({ ...p, images: undefined }));
       }
     }
@@ -320,8 +320,15 @@ export default function PostPage() {
         {/* Step 3: Photos */}
         {step === 3 && (
           <div>
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Fotografii</h2>
-            <p className="text-sm text-slate-500 mb-5">Anunțurile cu poze se vând de 5× mai repede. Adaugă până la 10 fotografii.</p>
+            {/* Tip banner */}
+            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-5">
+              <span className="text-amber-500 text-lg shrink-0">📸</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Anunțurile cu 5+ fotografii se vând de 2× mai repede</p>
+                <p className="text-xs text-amber-600 mt-0.5">Toate unghiurile · Close-up · Marcă &amp; etichetă · Uzură &amp; defecte</p>
+              </div>
+            </div>
+
             {errors.images && <ErrorMsg msg={errors.images} className="mb-3" />}
 
             <input
@@ -333,35 +340,72 @@ export default function PostPage() {
               onChange={handleFileChange}
             />
 
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              {form.imageUrls.map((img, i) => (
-                <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                  <img src={img} alt={`Fotografie ${i + 1}`} className="w-full h-full object-cover" />
-                  {i === 0 && (
-                    <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">Principală</span>
-                  )}
-                  <button onClick={() => removeImage(i)}
-                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+            {(() => {
+              const filled = form.imageUrls.length;
+              const isUp = uploadingIdx !== null;
+              const slotCount = Math.min(10, Math.max(6, filled + (isUp ? 1 : 0) + (filled < 10 ? 1 : 0)));
+              return (
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {Array.from({ length: slotCount }).map((_, i) => {
+                    const url = form.imageUrls[i];
+                    if (url) {
+                      return (
+                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group">
+                          <img src={url} alt={`Fotografie ${i + 1}`} className="w-full h-full object-cover" />
+                          {i === 0 && (
+                            <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-widest bg-[#2563EB] text-white">COVER</span>
+                          )}
+                          <button
+                            onClick={() => removeImage(i)}
+                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition opacity-0 group-hover:opacity-100"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    }
+                    if (isUp && i === filled) {
+                      return (
+                        <div key={i} className="aspect-square rounded-xl border-2 border-blue-300 bg-blue-50 flex items-center justify-center">
+                          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
+                        </div>
+                      );
+                    }
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={filled >= 10}
+                        className={cn(
+                          'aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 transition-all',
+                          i === 0
+                            ? 'border-blue-300 bg-blue-50/50 hover:bg-blue-50 text-blue-400 hover:text-blue-500 hover:border-blue-400'
+                            : 'border-slate-200 bg-slate-50/40 hover:bg-slate-50 text-slate-300 hover:text-slate-400 hover:border-slate-300'
+                        )}
+                      >
+                        {i === 0 ? (
+                          <>
+                            <Upload className="w-5 h-5" />
+                            <span className="text-[10px] font-bold tracking-widest">COVER</span>
+                          </>
+                        ) : (
+                          <span className="text-2xl font-light leading-none">+</span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
-              {uploadingIdx !== null && (
-                <div className="aspect-square rounded-xl border-2 border-blue-300 bg-blue-50 flex items-center justify-center">
-                  <div className="animate-spin w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full" />
-                </div>
-              )}
-              {form.imageUrls.length < 10 && uploadingIdx === null && (
-                <button onClick={() => fileInputRef.current?.click()}
-                  className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-blue-400 bg-slate-50 hover:bg-blue-50 flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-blue-500 transition-all">
-                  <Upload className="w-6 h-6" />
-                  <span className="text-xs font-medium">Adaugă foto</span>
-                </button>
-              )}
-            </div>
+              );
+            })()}
+
+            {form.imageUrls.length < 3 && (
+              <p className="text-xs text-slate-400 mb-3">
+                Mai ai nevoie de {3 - form.imageUrls.length} {3 - form.imageUrls.length === 1 ? 'fotografie' : 'fotografii'} (minim 3)
+              </p>
+            )}
 
             <p className="text-xs text-slate-400 bg-slate-50 rounded-xl px-4 py-3">
-              💡 <strong>Sfat:</strong> Poza principală apare în listing. Folosește poze luminoase, din mai multe unghiuri. JPG/PNG/WebP, max 10MB per poză.
+              💡 JPG / PNG / WebP · max 10 MB per poză · până la 10 fotografii
             </p>
           </div>
         )}
