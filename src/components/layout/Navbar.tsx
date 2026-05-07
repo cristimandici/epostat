@@ -169,11 +169,10 @@ export default function Navbar() {
               </Link>
             )}
 
-            <Link href="/postare" className="ml-1">
+            <Link href="/postare" className="hidden sm:flex ml-1">
               <Button variant="accent" size="sm" className="gap-1.5 rounded-xl">
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Postează anunț</span>
-                <span className="sm:hidden">Anunț</span>
+                Postează anunț
               </Button>
             </Link>
 

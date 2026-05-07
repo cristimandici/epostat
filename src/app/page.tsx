@@ -91,14 +91,16 @@ function AdRow({ ads, favIds }: { ads: Ad[]; favIds: Set<string> }) {
   if (ads.length === 0) return null;
   return (
     <>
-      {/* Mobile: isolated horizontal scroll — overflow-y:hidden prevents page scroll */}
-      <div className="sm:hidden -mx-4 overflow-x-auto overflow-y-hidden hide-scrollbar">
-        <div className="flex gap-3 pl-4 pr-4 pb-2" style={{ width: 'max-content' }}>
-          {ads.map(ad => (
-            <div key={ad.id} className="shrink-0" style={{ width: '42vw' }}>
-              <AdCard ad={ad} favorited={favIds.has(ad.id)} />
-            </div>
-          ))}
+      {/* Mobile: outer overflow:hidden creates BFC so inner max-content doesn't bleed to body */}
+      <div className="sm:hidden -mx-4 overflow-hidden">
+        <div className="overflow-x-scroll overscroll-x-contain hide-scrollbar pb-2 touch-pan-x">
+          <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
+            {ads.map(ad => (
+              <div key={ad.id} style={{ width: '44vw', flexShrink: 0 }}>
+                <AdCard ad={ad} favorited={favIds.has(ad.id)} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       {/* Desktop: grid */}
