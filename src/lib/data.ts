@@ -714,3 +714,76 @@ export const CATEGORY_FIELDS: Record<string, CategoryField[]> = {
     { key: 'castrat', label: 'Castrat/Sterilizat', type: 'select', options: ['Da', 'Nu'] },
   ],
 };
+
+// ─── Condition overrides ──────────────────────────────────────────────────────
+
+export const REALESTATE_CONDITIONS = [
+  { value: 'nou', label: 'Nou construit', desc: 'Imobil nou, nelocuit' },
+  { value: 'ca-nou', label: 'Renovat recent', desc: 'Renovat în ultimii 2 ani' },
+  { value: 'buna-stare', label: 'Stare bună', desc: 'Locuibil, fără renovare majoră' },
+  { value: 'necesita-reparatii', label: 'Necesită renovare', desc: 'Necesită lucrări de renovare' },
+];
+
+export const HIDE_CONDITION_SUBCATS = new Set([
+  'terenuri', 'caini', 'pisici', 'alte-animale', 'accesorii-animale',
+  'constructii', 'transport', 'it-tech', 'educatie', 'alte-servicii',
+]);
+
+export const REALESTATE_CONDITION_SUBCATS = new Set([
+  'apartamente', 'garsoniere', 'case', 'spatii-comerciale',
+]);
+
+// ─── Counties & Localities ───────────────────────────────────────────────────
+
+export const COUNTIES = [
+  'Alba', 'Arad', 'Argeș', 'Bacău', 'Bihor', 'Bistrița-Năsăud', 'Botoșani',
+  'Brăila', 'Brașov', 'București', 'Buzău', 'Călărași', 'Cluj', 'Constanța',
+  'Covasna', 'Dâmbovița', 'Dolj', 'Galați', 'Giurgiu', 'Gorj', 'Harghita',
+  'Hunedoara', 'Ialomița', 'Iași', 'Ilfov', 'Maramureș', 'Mehedinți',
+  'Mureș', 'Neamț', 'Olt', 'Prahova', 'Sălaj', 'Satu Mare', 'Sibiu',
+  'Suceava', 'Teleorman', 'Timiș', 'Tulcea', 'Vâlcea', 'Vaslui', 'Vrancea',
+];
+
+export const COUNTY_LOCALITIES: Record<string, string[]> = {
+  Alba: ['Alba Iulia', 'Aiud', 'Blaj', 'Cugir', 'Ocna Mureș', 'Sebeș', 'Teiuș', 'Zlatna', 'Altă localitate'],
+  Arad: ['Arad', 'Curtici', 'Ineu', 'Lipova', 'Nădlac', 'Pecica', 'Sântana', 'Altă localitate'],
+  Argeș: ['Pitești', 'Câmpulung', 'Costești', 'Curtea de Argeș', 'Mioveni', 'Topoloveni', 'Altă localitate'],
+  Bacău: ['Bacău', 'Buhuși', 'Comănești', 'Moinești', 'Onești', 'Slănic Moldova', 'Târgu Ocna', 'Altă localitate'],
+  Bihor: ['Oradea', 'Aleșd', 'Beiuș', 'Marghita', 'Salonta', 'Ștei', 'Valea lui Mihai', 'Altă localitate'],
+  'Bistrița-Năsăud': ['Bistrița', 'Beclean', 'Năsăud', 'Sângeorz-Băi', 'Altă localitate'],
+  Botoșani: ['Botoșani', 'Darabani', 'Dorohoi', 'Flămânzi', 'Săveni', 'Altă localitate'],
+  Brăila: ['Brăila', 'Ianca', 'Însurăței', 'Făurei', 'Altă localitate'],
+  Brașov: ['Brașov', 'Azuga', 'Bușteni', 'Codlea', 'Făgăraș', 'Predeal', 'Râșnov', 'Rupea', 'Săcele', 'Sinaia', 'Victoria', 'Zărnești', 'Altă localitate'],
+  București: ['Sector 1', 'Sector 2', 'Sector 3', 'Sector 4', 'Sector 5', 'Sector 6'],
+  Buzău: ['Buzău', 'Nehoiu', 'Pătârlagele', 'Râmnicu Sărat', 'Pogoanele', 'Altă localitate'],
+  Călărași: ['Călărași', 'Budești', 'Lehliu-Gară', 'Oltenița', 'Altă localitate'],
+  Cluj: ['Cluj-Napoca', 'Apahida', 'Câmpia Turzii', 'Dej', 'Florești', 'Gherla', 'Huedin', 'Turda', 'Altă localitate'],
+  Constanța: ['Constanța', 'Cernavodă', 'Eforie Nord', 'Eforie Sud', 'Mangalia', 'Medgidia', 'Năvodari', 'Neptun', 'Techirghiol', 'Altă localitate'],
+  Covasna: ['Sfântu Gheorghe', 'Baraolt', 'Covasna', 'Întorsura Buzăului', 'Târgu Secuiesc', 'Altă localitate'],
+  Dâmbovița: ['Târgoviște', 'Găești', 'Moreni', 'Pucioasa', 'Răcari', 'Titu', 'Altă localitate'],
+  Dolj: ['Craiova', 'Băilești', 'Calafat', 'Dăbuleni', 'Filiaș', 'Segarcea', 'Altă localitate'],
+  Galați: ['Galați', 'Berești', 'Tecuci', 'Târgu Bujor', 'Altă localitate'],
+  Giurgiu: ['Giurgiu', 'Bolintin-Vale', 'Mihăilești', 'Altă localitate'],
+  Gorj: ['Târgu Jiu', 'Bumbești-Jiu', 'Motru', 'Novaci', 'Rovinari', 'Târgu Cărbunești', 'Turceni', 'Altă localitate'],
+  Harghita: ['Miercurea Ciuc', 'Băile Tușnad', 'Bălan', 'Borsec', 'Gheorgheni', 'Odorheiu Secuiesc', 'Toplița', 'Vlăhița', 'Altă localitate'],
+  Hunedoara: ['Deva', 'Brad', 'Călan', 'Hațeg', 'Hunedoara', 'Lupeni', 'Orăștie', 'Petroșani', 'Simeria', 'Uricani', 'Vulcan', 'Altă localitate'],
+  Ialomița: ['Slobozia', 'Amara', 'Fetești', 'Țăndărei', 'Urziceni', 'Altă localitate'],
+  Iași: ['Iași', 'Hârlău', 'Pașcani', 'Târgu Frumos', 'Ungheni', 'Altă localitate'],
+  Ilfov: ['Buftea', 'Bragadiru', 'Chitila', 'Măgurele', 'Otopeni', 'Pantelimon', 'Popești-Leordeni', 'Voluntari', 'Altă localitate'],
+  Maramureș: ['Baia Mare', 'Borșa', 'Cavnic', 'Seini', 'Sighetu Marmației', 'Târgu Lăpuș', 'Vișeu de Sus', 'Altă localitate'],
+  Mehedinți: ['Drobeta-Turnu Severin', 'Baia de Aramă', 'Orșova', 'Strehaia', 'Vânju Mare', 'Altă localitate'],
+  Mureș: ['Târgu Mureș', 'Luduș', 'Reghin', 'Sighișoara', 'Sovata', 'Ungheni', 'Altă localitate'],
+  Neamț: ['Piatra Neamț', 'Bicaz', 'Roman', 'Roznov', 'Târgu Neamț', 'Altă localitate'],
+  Olt: ['Slatina', 'Balș', 'Caracal', 'Corabia', 'Drăgănești-Olt', 'Scornicești', 'Altă localitate'],
+  Prahova: ['Ploiești', 'Azuga', 'Băicoi', 'Breaza', 'Bușteni', 'Câmpina', 'Comarnic', 'Mizil', 'Sinaia', 'Urlați', 'Vălenii de Munte', 'Altă localitate'],
+  Sălaj: ['Zalău', 'Cehu Silvaniei', 'Jibou', 'Șimleu Silvaniei', 'Altă localitate'],
+  'Satu Mare': ['Satu Mare', 'Ardud', 'Carei', 'Livada', 'Negrești-Oaș', 'Tășnad', 'Altă localitate'],
+  Sibiu: ['Sibiu', 'Agnita', 'Avrig', 'Cisnădie', 'Copșa Mică', 'Dumbrăveni', 'Mediaș', 'Miercurea Sibiului', 'Ocna Sibiului', 'Altă localitate'],
+  Suceava: ['Suceava', 'Câmpulung Moldovenesc', 'Fălticeni', 'Gura Humorului', 'Rădăuți', 'Siret', 'Vatra Dornei', 'Altă localitate'],
+  Teleorman: ['Alexandria', 'Roșiorii de Vede', 'Turnu Măgurele', 'Videle', 'Zimnicea', 'Altă localitate'],
+  Timiș: ['Timișoara', 'Deta', 'Jimbolia', 'Lugoj', 'Sânnicolau Mare', 'Altă localitate'],
+  Tulcea: ['Tulcea', 'Babadag', 'Isaccea', 'Măcin', 'Sulina', 'Altă localitate'],
+  Vâlcea: ['Râmnicu Vâlcea', 'Băile Govora', 'Băile Olănești', 'Brezoi', 'Călimănești', 'Drăgășani', 'Horezu', 'Altă localitate'],
+  Vaslui: ['Vaslui', 'Bârlad', 'Huși', 'Negrești', 'Altă localitate'],
+  Vrancea: ['Focșani', 'Adjud', 'Mărășești', 'Odobești', 'Panciu', 'Altă localitate'],
+};

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Logo from '@/components/ui/Logo';
-import { CATEGORIES, SUBCATEGORIES, CATEGORY_FIELDS } from '@/lib/data';
+import { CATEGORIES, SUBCATEGORIES, CATEGORY_FIELDS, HIDE_CONDITION_SUBCATS, REALESTATE_CONDITIONS, REALESTATE_CONDITION_SUBCATS, COUNTIES, COUNTY_LOCALITIES } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 
@@ -128,7 +128,11 @@ const CONDITIONS = [
   { value: 'necesita-reparatii', label: 'Necesită reparații', desc: 'Vânzare ca atare' },
 ];
 
-const CITIES = ['Alba Iulia', 'Alexandria', 'Arad', 'Bacău', 'Baia Mare', 'Bistrița', 'Botoșani', 'Brăila', 'Brașov', 'București', 'Buzău', 'Călărași', 'Cluj-Napoca', 'Constanța', 'Craiova', 'Deva', 'Drobeta-Turnu Severin', 'Focșani', 'Galați', 'Giurgiu', 'Iași', 'Ilfov', 'Miercurea Ciuc', 'Oradea', 'Piatra Neamț', 'Pitești', 'Ploiești', 'Râmnicu Vâlcea', 'Reșița', 'Satu Mare', 'Sfântu Gheorghe', 'Sibiu', 'Slatina', 'Slobozia', 'Suceava', 'Târgu Jiu', 'Târgu Mureș', 'Târgoviște', 'Timișoara', 'Tulcea', 'Vaslui', 'Zalău'];
+function getConditions(subcategory: string) {
+  if (HIDE_CONDITION_SUBCATS.has(subcategory)) return null;
+  if (REALESTATE_CONDITION_SUBCATS.has(subcategory)) return REALESTATE_CONDITIONS;
+  return CONDITIONS;
+}
 
 const CAT_ICONS: Record<string, string> = {
   'Laptop': '💻', 'Car': '🚗', 'Home': '🏠', 'Shirt': '👗',
@@ -159,6 +163,7 @@ interface FormData {
   imageUrls: string[];
   price: string;
   negotiable: boolean;
+  county: string;
   city: string;
   location: string;
   phone: string;
@@ -167,7 +172,7 @@ interface FormData {
 const EMPTY_FORM: FormData = {
   category: '', subcategory: '', attributes: {}, title: '', condition: '', description: '',
   imageFiles: [], imageUrls: [],
-  price: '', negotiable: false, city: '', location: '', phone: '',
+  price: '', negotiable: false, county: '', city: '', location: '', phone: '',
 };
 
 const DRAFT_KEY = 'epostat_post_draft';
@@ -252,8 +257,9 @@ function PostPageContent() {
       category_id: f.category || null,
       subcategory: f.subcategory || null,
       attributes: Object.keys(f.attributes).length ? f.attributes : null,
-      condition: f.condition || 'nou',
+      condition: HIDE_CONDITION_SUBCATS.has(f.subcategory) ? 'buna-stare' : (f.condition || 'nou'),
       images: f.imageUrls,
+      county: f.county || null,
       city: f.city || null,
       location: f.location || null,
       updated_at: new Date().toISOString(),
@@ -296,6 +302,7 @@ function PostPageContent() {
         imageUrls: (data.images as string[]) || [],
         price: data.price ? String(data.price) : '',
         negotiable: (data.negotiable as boolean) || false,
+        county: (data.county as string) || '',
         city: (data.city as string) || '',
         location: (data.location as string) || '',
         phone: '',
@@ -430,10 +437,11 @@ function PostPageContent() {
     if (s === 2) {
       const specFields = form.subcategory ? (CATEGORY_FIELDS[form.subcategory] ?? []) : [];
       const allSpecsFilled = specFields.every(f => !!form.attributes[f.key]?.trim());
-      return form.title.length >= 20 && !!form.condition && form.description.length >= 20 && allSpecsFilled;
+      const conditionOk = HIDE_CONDITION_SUBCATS.has(form.subcategory) || !!form.condition;
+      return form.title.length >= 20 && conditionOk && form.description.length >= 20 && allSpecsFilled;
     }
     if (s === 3) return form.imageUrls.length >= 3;
-    if (s === 4) return Number(form.price) > 0 && !!form.city;
+    if (s === 4) return Number(form.price) > 0 && !!form.county && !!form.city;
     return false;
   };
 
@@ -445,7 +453,7 @@ function PostPageContent() {
     }
     if (s === 2) {
       if (!form.title || form.title.length < 20) e.title = 'Titlul trebuie să aibă cel puțin 20 de caractere.';
-      if (!form.condition) e.condition = 'Selectează starea produsului.';
+      if (!HIDE_CONDITION_SUBCATS.has(form.subcategory) && !form.condition) e.condition = 'Selectează starea produsului.';
       if (!form.description || form.description.length < 20) e.description = 'Adaugă o descriere mai detaliată (min. 20 caractere).';
       if (form.subcategory && CATEGORY_FIELDS[form.subcategory]) {
         const missing = CATEGORY_FIELDS[form.subcategory].filter(f => !form.attributes[f.key]?.trim());
@@ -455,7 +463,8 @@ function PostPageContent() {
     if (s === 3 && form.imageUrls.length < 3) e.images = 'Adaugă cel puțin 3 fotografii 📸';
     if (s === 4) {
       if (!form.price || isNaN(Number(form.price)) || Number(form.price) <= 0) e.price = 'Introdu un preț valid.';
-      if (!form.city) e.city = 'Alege un oraș.';
+      if (!form.county) e.county = 'Alege un județ.';
+      if (!form.city) e.city = 'Alege o localitate.';
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -531,8 +540,9 @@ function PostPageContent() {
       category_id: form.category,
       subcategory: form.subcategory || null,
       attributes: Object.keys(form.attributes).length ? form.attributes : null,
-      condition: form.condition,
+      condition: HIDE_CONDITION_SUBCATS.has(form.subcategory) ? 'buna-stare' : form.condition,
       images: form.imageUrls,
+      county: form.county || null,
       city: form.city,
       location: form.location || null,
       status: 'activ',
@@ -586,7 +596,7 @@ function PostPageContent() {
 
             {/* Headline: "Anunțul tău e [logo]" */}
             <div className="flex items-center justify-center gap-2.5 flex-wrap mb-5">
-              <span className="text-[1.65rem] font-black text-slate-900 leading-none">Anunțul tău e</span>
+              <span className="text-[1.65rem] font-black text-slate-900 leading-none">Anunțul tău</span>
               <Logo height={33} />
             </div>
 
@@ -889,23 +899,29 @@ function PostPageContent() {
                               );
                             })()}
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Stare produs <span className="text-red-400">*</span></label>
-                            {errors.condition && <ErrorMsg msg={errors.condition} />}
-                            <div className="grid grid-cols-1 gap-2 mt-2">
-                              {CONDITIONS.map((c) => (
-                                <label key={c.value} className={cn('flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all', form.condition === c.value ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300')}>
-                                  <input type="radio" name="condition" value={c.value} checked={form.condition === c.value}
-                                    onChange={() => { set('condition', c.value); setErrors((p) => ({ ...p, condition: undefined })); }}
-                                    className="mt-0.5 text-blue-600 focus:ring-blue-500" />
-                                  <div>
-                                    <p className="font-semibold text-sm text-slate-800">{c.label}</p>
-                                    <p className="text-xs text-slate-500">{c.desc}</p>
-                                  </div>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
+                          {(() => {
+                            const condList = getConditions(form.subcategory);
+                            if (!condList) return null;
+                            return (
+                              <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Stare produs <span className="text-red-400">*</span></label>
+                                {errors.condition && <ErrorMsg msg={errors.condition} />}
+                                <div className="grid grid-cols-1 gap-2 mt-2">
+                                  {condList.map((c) => (
+                                    <label key={c.value} className={cn('flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all', form.condition === c.value ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300')}>
+                                      <input type="radio" name="condition" value={c.value} checked={form.condition === c.value}
+                                        onChange={() => { set('condition', c.value); setErrors((p) => ({ ...p, condition: undefined })); }}
+                                        className="mt-0.5 text-blue-600 focus:ring-blue-500" />
+                                      <div>
+                                        <p className="font-semibold text-sm text-slate-800">{c.label}</p>
+                                        <p className="text-xs text-slate-500">{c.desc}</p>
+                                      </div>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
                           <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1.5">Descriere <span className="text-red-400">*</span></label>
                             <textarea value={form.description} onChange={(e) => { set('description', e.target.value); setErrors((p) => ({ ...p, description: undefined })); }}
@@ -1036,20 +1052,36 @@ function PostPageContent() {
                           </label>
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1.5">Oraș <span className="text-red-400">*</span></label>
-                              <select value={form.city} onChange={(e) => { set('city', e.target.value); setErrors((p) => ({ ...p, city: undefined })); }}
-                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                              <label className="block text-sm font-medium text-slate-700 mb-1.5">Județ <span className="text-red-400">*</span></label>
+                              <select
+                                value={form.county}
+                                onChange={(e) => { set('county', e.target.value); set('city', ''); setErrors(p => ({ ...p, county: undefined, city: undefined })); }}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              >
                                 <option value="">Selectează...</option>
-                                {CITIES.map((c) => <option key={c}>{c}</option>)}
+                                {COUNTIES.map((c) => <option key={c}>{c}</option>)}
+                              </select>
+                              {errors.county && <ErrorMsg msg={errors.county} />}
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1.5">Localitate <span className="text-red-400">*</span></label>
+                              <select
+                                value={form.city}
+                                onChange={(e) => { set('city', e.target.value); setErrors(p => ({ ...p, city: undefined })); }}
+                                disabled={!form.county}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <option value="">{form.county ? 'Selectează...' : '— alege județul —'}</option>
+                                {form.county && (COUNTY_LOCALITIES[form.county] ?? []).map((l) => <option key={l}>{l}</option>)}
                               </select>
                               {errors.city && <ErrorMsg msg={errors.city} />}
                             </div>
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1.5">Cartier / zonă</label>
-                              <input type="text" value={form.location} onChange={(e) => set('location', e.target.value)}
-                                placeholder="Ex: Florești"
-                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
-                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Cartier / zonă</label>
+                            <input type="text" value={form.location} onChange={(e) => set('location', e.target.value)}
+                              placeholder="Ex: Centru, Florești..."
+                              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1.5">Număr de telefon</label>
@@ -1066,7 +1098,7 @@ function PostPageContent() {
                               <Row label="Stare" value={form.condition || '—'} />
                               <Row label="Fotografii" value={`${form.imageUrls.length} foto`} />
                               <Row label="Preț" value={form.price ? `${Number(form.price).toLocaleString('ro-RO')} RON${form.negotiable ? ' (negociabil)' : ''}` : '—'} />
-                              <Row label="Locație" value={form.city || '—'} />
+                              <Row label="Locație" value={[form.city, form.county].filter(Boolean).join(', ') || '—'} />
                             </div>
                           </div>
                           {errors.submit && <ErrorMsg msg={errors.submit} />}
@@ -1153,9 +1185,9 @@ function PostPageContent() {
                 </p>
                 <div className="flex items-center gap-4 mt-4 text-sm text-slate-500 flex-wrap">
                   {cat && <span className="flex items-center gap-1.5">{CAT_ICONS[cat.icon] ?? '📦'} {cat.name}</span>}
-                  {form.city && (
+                  {(form.city || form.county) && (
                     <span className="flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4" /> {form.city}
+                      <MapPin className="w-4 h-4" /> {[form.city, form.county].filter(Boolean).join(', ')}
                     </span>
                   )}
                 </div>
