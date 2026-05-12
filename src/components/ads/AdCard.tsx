@@ -102,22 +102,14 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
 
         <p className="text-base font-bold text-slate-900">{formatPrice(ad.price)}</p>
 
-        <div className="mt-auto pt-1.5 flex items-center justify-between text-xs text-slate-400">
-          <span className="flex items-center gap-0.5 min-w-0 mr-2">
+        <div className="mt-auto pt-1.5 flex flex-col gap-0.5 text-xs text-slate-400">
+          <span className="flex items-center gap-0.5 min-w-0">
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{ad.city}</span>
           </span>
-          <span className="flex items-center gap-2 shrink-0">
-            <span className="flex items-center gap-0.5">
-              <Clock className="w-3 h-3" />
-              {timeAgo(ad.postedAt)}
-            </span>
-            {ad.views > 0 && (
-              <span className="flex items-center gap-0.5">
-                <Eye className="w-3 h-3" />
-                {ad.views}
-              </span>
-            )}
+          <span className="flex items-center gap-0.5">
+            <Clock className="w-3 h-3 shrink-0" />
+            {timeAgo(ad.postedAt)}
           </span>
         </div>
       </div>
