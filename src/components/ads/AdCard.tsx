@@ -84,7 +84,7 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
       </div>
 
       {/* Text sits on page background – no white box */}
-      <div className="pt-2.5 flex flex-col flex-1">
+      <div className="px-2 pt-2 pb-1 flex flex-col flex-1">
         <h3 className="font-semibold text-slate-900 text-sm leading-snug line-clamp-2 mb-1.5">
           {ad.title}
         </h3>
