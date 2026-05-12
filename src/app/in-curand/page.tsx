@@ -1,13 +1,12 @@
+import Logo from '@/components/ui/Logo';
+
 export default function ComingSoonPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center px-4">
       <div className="text-center max-w-lg">
         {/* Logo */}
         <div className="inline-flex items-center gap-3 mb-10">
-          <span className="text-3xl font-black text-white">
-            e<span className="text-[#60A5FA]">postat</span>
-            <span className="text-slate-400 font-normal">.ro</span>
-          </span>
+          <Logo height={40} variant="light" />
         </div>
 
         <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 leading-tight">

@@ -1,5 +1,21 @@
 import { Ad, User, Offer, Conversation, Category } from './types';
 
+export interface CategoryField {
+  key: string;
+  label: string;
+  type: 'select' | 'number' | 'text';
+  options?: string[];
+  unit?: string;
+  required?: boolean;
+  placeholder?: string;
+}
+
+export interface Subcategory {
+  id: string;
+  label: string;
+  icon: string;
+}
+
 export const CATEGORIES: Category[] = [
   { id: 'electronice', name: 'Electronice', icon: 'Laptop', count: 1243, color: 'bg-blue-100 text-blue-600' },
   { id: 'auto', name: 'Auto & Moto', icon: 'Car', count: 892, color: 'bg-orange-100 text-orange-600' },
@@ -508,3 +524,193 @@ export function timeAgo(dateStr: string): string {
   if (days < 7) return `Acum ${days} ${days === 1 ? 'zi' : 'zile'}`;
   return date.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' });
 }
+
+// ─── Subcategories ────────────────────────────────────────────────────────────
+
+export const SUBCATEGORIES: Record<string, Subcategory[]> = {
+  auto: [
+    { id: 'autoturisme', label: 'Autoturisme', icon: '🚗' },
+    { id: 'motociclete', label: 'Motociclete', icon: '🏍️' },
+    { id: 'autoutilitare', label: 'Autoutilitare', icon: '🚐' },
+    { id: 'rulote', label: 'Rulote & Caravane', icon: '🏕️' },
+    { id: 'piese-auto', label: 'Piese & Accesorii', icon: '🔧' },
+  ],
+  electronice: [
+    { id: 'telefoane', label: 'Telefoane & Tablete', icon: '📱' },
+    { id: 'laptopuri', label: 'Laptopuri & PC', icon: '💻' },
+    { id: 'tv-audio', label: 'TV & Audio-Video', icon: '📺' },
+    { id: 'foto-video', label: 'Foto & Video', icon: '📷' },
+    { id: 'console', label: 'Console & Jocuri', icon: '🎮' },
+    { id: 'alte-electronice', label: 'Alte Electronice', icon: '🔌' },
+  ],
+  imobiliare: [
+    { id: 'apartamente', label: 'Apartamente', icon: '🏢' },
+    { id: 'garsoniere', label: 'Garsoniere', icon: '🛏️' },
+    { id: 'case', label: 'Case & Vile', icon: '🏡' },
+    { id: 'terenuri', label: 'Terenuri', icon: '🌿' },
+    { id: 'spatii-comerciale', label: 'Spații Comerciale', icon: '🏪' },
+  ],
+  moda: [
+    { id: 'dame', label: 'Dame', icon: '👗' },
+    { id: 'barbati', label: 'Bărbați', icon: '👔' },
+    { id: 'incaltaminte', label: 'Încălțăminte', icon: '👟' },
+    { id: 'genti-accesorii', label: 'Genți & Accesorii', icon: '👜' },
+    { id: 'cosmetice', label: 'Cosmetice & Parfumuri', icon: '💄' },
+  ],
+  casa: [
+    { id: 'mobila', label: 'Mobilă', icon: '🛋️' },
+    { id: 'electrocasnice', label: 'Electrocasnice', icon: '🏠' },
+    { id: 'gradina', label: 'Grădină & Exterior', icon: '🌱' },
+    { id: 'decoratiuni', label: 'Decorațiuni', icon: '🕯️' },
+    { id: 'unelte', label: 'Unelte & Bricolaj', icon: '🔨' },
+  ],
+  sport: [
+    { id: 'biciclete', label: 'Biciclete', icon: '🚲' },
+    { id: 'fitness', label: 'Fitness & Sală', icon: '🏋️' },
+    { id: 'sporturi-nautice', label: 'Sporturi Nautice', icon: '⛵' },
+    { id: 'sporturi-iarna', label: 'Sporturi de Iarnă', icon: '⛷️' },
+    { id: 'alte-sporturi', label: 'Alte Sporturi', icon: '⚽' },
+  ],
+  copii: [
+    { id: 'jucarii', label: 'Jucării', icon: '🧸' },
+    { id: 'imbracaminte-copii', label: 'Îmbrăcăminte Copii', icon: '👶' },
+    { id: 'carucioare', label: 'Cărucioare & Scaune', icon: '🍼' },
+    { id: 'mobila-copii', label: 'Mobilă Copii', icon: '🛏️' },
+    { id: 'carti-educatie', label: 'Cărți & Educație', icon: '📚' },
+  ],
+  animale: [
+    { id: 'caini', label: 'Câini', icon: '🐕' },
+    { id: 'pisici', label: 'Pisici', icon: '🐈' },
+    { id: 'alte-animale', label: 'Alte Animale', icon: '🐾' },
+    { id: 'accesorii-animale', label: 'Accesorii & Hrană', icon: '🦴' },
+  ],
+  servicii: [
+    { id: 'constructii', label: 'Construcții & Renovări', icon: '🏗️' },
+    { id: 'transport', label: 'Transport & Mutări', icon: '🚛' },
+    { id: 'it-tech', label: 'IT & Tehnologie', icon: '💻' },
+    { id: 'educatie', label: 'Educație & Meditații', icon: '📖' },
+    { id: 'alte-servicii', label: 'Alte Servicii', icon: '💼' },
+  ],
+};
+
+// ─── Category-specific fields ─────────────────────────────────────────────────
+
+export const CATEGORY_FIELDS: Record<string, CategoryField[]> = {
+  autoturisme: [
+    { key: 'marca', label: 'Marcă', type: 'select', required: true, options: ['Audi', 'BMW', 'Citroën', 'Dacia', 'Fiat', 'Ford', 'Honda', 'Hyundai', 'Kia', 'Mazda', 'Mercedes-Benz', 'Mitsubishi', 'Nissan', 'Opel', 'Peugeot', 'Porsche', 'Renault', 'Seat', 'Skoda', 'Suzuki', 'Toyota', 'Volkswagen', 'Volvo', 'Altă marcă'] },
+    { key: 'model', label: 'Model', type: 'text', required: true, placeholder: 'ex: Golf, Duster, Seria 3...' },
+    { key: 'an', label: 'An fabricație', type: 'number', required: true, placeholder: 'ex: 2019' },
+    { key: 'km', label: 'Kilometraj', type: 'number', unit: 'km', required: true, placeholder: 'ex: 85000' },
+    { key: 'combustibil', label: 'Combustibil', type: 'select', required: true, options: ['Benzină', 'Motorină/Diesel', 'GPL', 'Electric', 'Hibrid benzină', 'Hibrid diesel'] },
+    { key: 'cutie', label: 'Cutie de viteze', type: 'select', required: true, options: ['Manuală', 'Automată', 'Semi-automată (DSG/DCT)'] },
+    { key: 'capacitate', label: 'Capacitate cilindrică', type: 'select', options: ['sub 1000 cc', '1000–1400 cc', '1400–1600 cc', '1600–2000 cc', '2000–2500 cc', 'peste 2500 cc'] },
+    { key: 'putere_cp', label: 'Putere (CP)', type: 'number', placeholder: 'ex: 150' },
+    { key: 'nr_usi', label: 'Număr uși', type: 'select', options: ['2', '3', '4', '5'] },
+    { key: 'culoare', label: 'Culoare', type: 'select', options: ['Alb', 'Negru', 'Gri', 'Argintiu', 'Albastru', 'Roșu', 'Verde', 'Maro', 'Bej', 'Galben', 'Portocaliu', 'Altă culoare'] },
+  ],
+  motociclete: [
+    { key: 'marca', label: 'Marcă', type: 'select', required: true, options: ['BMW', 'Ducati', 'Harley-Davidson', 'Honda', 'Kawasaki', 'KTM', 'Suzuki', 'Triumph', 'Yamaha', 'Altă marcă'] },
+    { key: 'model', label: 'Model', type: 'text', required: true, placeholder: 'ex: CBR600RR, R1200GS...' },
+    { key: 'an', label: 'An fabricație', type: 'number', required: true, placeholder: 'ex: 2020' },
+    { key: 'km', label: 'Kilometraj', type: 'number', unit: 'km', required: true, placeholder: 'ex: 15000' },
+    { key: 'capacitate_cc', label: 'Capacitate (cc)', type: 'number', placeholder: 'ex: 600' },
+    { key: 'putere_cp', label: 'Putere (CP)', type: 'number', placeholder: 'ex: 120' },
+    { key: 'tip', label: 'Tip motocicletă', type: 'select', options: ['Sport', 'Naked', 'Touring', 'Scuter', 'Cross/Enduro', 'Custom/Chopper', 'Alt tip'] },
+  ],
+  autoutilitare: [
+    { key: 'marca', label: 'Marcă', type: 'select', required: true, options: ['Dacia', 'Fiat', 'Ford', 'Iveco', 'MAN', 'Mercedes-Benz', 'Opel', 'Peugeot', 'Renault', 'Toyota', 'Volkswagen', 'Altă marcă'] },
+    { key: 'model', label: 'Model', type: 'text', required: true, placeholder: 'ex: Transit, Sprinter, Ducato...' },
+    { key: 'an', label: 'An fabricație', type: 'number', required: true },
+    { key: 'km', label: 'Kilometraj', type: 'number', unit: 'km', required: true },
+    { key: 'combustibil', label: 'Combustibil', type: 'select', options: ['Benzină', 'Motorină/Diesel', 'GPL', 'Electric'] },
+    { key: 'tonaj', label: 'Tonaj maxim', type: 'select', options: ['sub 1t', '1–2t', '2–3.5t', '3.5–7.5t', 'peste 7.5t'] },
+  ],
+  rulote: [
+    { key: 'marca', label: 'Marcă', type: 'text', placeholder: 'ex: Knaus, Hobby, Bürstner...' },
+    { key: 'an', label: 'An fabricație', type: 'number', required: true },
+    { key: 'lungime', label: 'Lungime (m)', type: 'number', placeholder: 'ex: 7.5' },
+    { key: 'locuri_dormit', label: 'Locuri de dormit', type: 'select', options: ['2', '3', '4', '5', '6+'] },
+    { key: 'tip', label: 'Tip', type: 'select', options: ['Remorcă (caravană)', 'Autocaravană (camping-car)', 'Rulotă'] },
+  ],
+  telefoane: [
+    { key: 'marca', label: 'Marcă', type: 'select', required: true, options: ['Apple', 'Samsung', 'Xiaomi', 'Huawei', 'OnePlus', 'Google', 'Sony', 'Nokia', 'Motorola', 'Realme', 'OPPO', 'Altă marcă'] },
+    { key: 'model', label: 'Model', type: 'text', required: true, placeholder: 'ex: iPhone 14 Pro, Galaxy S23...' },
+    { key: 'stocare', label: 'Memorie stocare', type: 'select', options: ['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB'] },
+    { key: 'ram', label: 'RAM', type: 'select', options: ['2GB', '3GB', '4GB', '6GB', '8GB', '12GB', '16GB'] },
+    { key: 'retea', label: 'Rețea', type: 'select', options: ['4G', '5G'] },
+  ],
+  laptopuri: [
+    { key: 'marca', label: 'Marcă', type: 'select', required: true, options: ['Apple', 'Lenovo', 'HP', 'Dell', 'Asus', 'Acer', 'MSI', 'Microsoft', 'Razer', 'Altă marcă'] },
+    { key: 'model', label: 'Model', type: 'text', required: true, placeholder: 'ex: MacBook Pro 14", ThinkPad X1...' },
+    { key: 'procesor', label: 'Procesor', type: 'select', options: ['Intel Core i3', 'Intel Core i5', 'Intel Core i7', 'Intel Core i9', 'AMD Ryzen 3', 'AMD Ryzen 5', 'AMD Ryzen 7', 'AMD Ryzen 9', 'Apple M1', 'Apple M2', 'Apple M3', 'Alt procesor'] },
+    { key: 'ram', label: 'RAM', type: 'select', options: ['4GB', '8GB', '16GB', '32GB', '64GB'] },
+    { key: 'stocare', label: 'Stocare', type: 'select', options: ['128GB SSD', '256GB SSD', '512GB SSD', '1TB SSD', '1TB HDD', '2TB HDD', 'Altele'] },
+    { key: 'ecran', label: 'Diagonală ecran', type: 'select', options: ['11"–12"', '13"–14"', '15"–16"', '17"+'] },
+  ],
+  apartamente: [
+    { key: 'tip_tranzactie', label: 'Tip tranzacție', type: 'select', required: true, options: ['Vânzare', 'Închiriere', 'Schimb'] },
+    { key: 'nr_camere', label: 'Număr camere', type: 'select', required: true, options: ['1 cameră', '2 camere', '3 camere', '4 camere', '5+ camere'] },
+    { key: 'suprafata', label: 'Suprafață utilă', type: 'number', unit: 'm²', required: true, placeholder: 'ex: 65' },
+    { key: 'etaj', label: 'Etaj', type: 'select', options: ['Parter', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10+', 'Mansardă'] },
+    { key: 'an_constructie', label: 'An construcție', type: 'number', placeholder: 'ex: 1985' },
+    { key: 'compartimentare', label: 'Compartimentare', type: 'select', options: ['Nedecomandat', 'Semidecomandat', 'Decomandat', 'Circular'] },
+  ],
+  garsoniere: [
+    { key: 'tip_tranzactie', label: 'Tip tranzacție', type: 'select', required: true, options: ['Vânzare', 'Închiriere'] },
+    { key: 'suprafata', label: 'Suprafață utilă', type: 'number', unit: 'm²', required: true, placeholder: 'ex: 28' },
+    { key: 'etaj', label: 'Etaj', type: 'select', options: ['Parter', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10+', 'Mansardă'] },
+    { key: 'an_constructie', label: 'An construcție', type: 'number', placeholder: 'ex: 1975' },
+  ],
+  case: [
+    { key: 'tip_tranzactie', label: 'Tip tranzacție', type: 'select', required: true, options: ['Vânzare', 'Închiriere', 'Schimb'] },
+    { key: 'suprafata_utila', label: 'Suprafață utilă', type: 'number', unit: 'm²', required: true, placeholder: 'ex: 150' },
+    { key: 'suprafata_teren', label: 'Suprafață teren', type: 'number', unit: 'm²', placeholder: 'ex: 500' },
+    { key: 'nr_camere', label: 'Număr camere', type: 'select', options: ['2', '3', '4', '5', '6', '7+'] },
+    { key: 'nr_etaje', label: 'Structură', type: 'select', options: ['Parter', 'Parter + 1', 'Parter + 2', 'Parter + Mansardă'] },
+    { key: 'an_constructie', label: 'An construcție', type: 'number', placeholder: 'ex: 2005' },
+  ],
+  terenuri: [
+    { key: 'tip_tranzactie', label: 'Tip tranzacție', type: 'select', required: true, options: ['Vânzare', 'Închiriere'] },
+    { key: 'suprafata', label: 'Suprafață', type: 'number', unit: 'm²', required: true, placeholder: 'ex: 1000' },
+    { key: 'tip_teren', label: 'Clasificare teren', type: 'select', options: ['Intravilan', 'Extravilan', 'Agricol', 'Forestier', 'Industrial'] },
+    { key: 'front_stradal', label: 'Front stradal', type: 'number', unit: 'm', placeholder: 'ex: 20' },
+  ],
+  dame: [
+    { key: 'marime', label: 'Mărime', type: 'select', required: true, options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Altă mărime'] },
+    { key: 'brand', label: 'Brand', type: 'text', placeholder: 'ex: Zara, H&M, Gucci...' },
+    { key: 'culoare', label: 'Culoare', type: 'text', placeholder: 'ex: Albastru, Negru...' },
+  ],
+  barbati: [
+    { key: 'marime', label: 'Mărime', type: 'select', required: true, options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Altă mărime'] },
+    { key: 'brand', label: 'Brand', type: 'text', placeholder: 'ex: Nike, Adidas, Zara...' },
+    { key: 'culoare', label: 'Culoare', type: 'text', placeholder: 'ex: Albastru, Negru...' },
+  ],
+  incaltaminte: [
+    { key: 'marime', label: 'Mărime (EU)', type: 'select', required: true, options: ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47+'] },
+    { key: 'brand', label: 'Brand', type: 'text', placeholder: 'ex: Nike, Adidas, New Balance...' },
+    { key: 'sex', label: 'Sex', type: 'select', options: ['Dame', 'Bărbați', 'Unisex', 'Copii'] },
+  ],
+  biciclete: [
+    { key: 'tip', label: 'Tip bicicletă', type: 'select', required: true, options: ['MTB', 'Road/Cursieră', 'City/Trekking', 'BMX', 'Electrică (E-Bike)', 'Copii', 'Alt tip'] },
+    { key: 'marca', label: 'Marcă', type: 'text', placeholder: 'ex: Trek, Giant, Specialized...' },
+    { key: 'marime_cadru', label: 'Mărime cadru', type: 'select', options: ['XS/13"', 'S/15"', 'M/17"', 'L/19"', 'XL/21"', 'XXL/23"'] },
+    { key: 'marime_roata', label: 'Mărime roată', type: 'select', options: ['20"', '24"', '26"', '27.5"', '28"/700c', '29"'] },
+    { key: 'viteze', label: 'Număr viteze', type: 'number', placeholder: 'ex: 21' },
+  ],
+  caini: [
+    { key: 'rasa', label: 'Rasă', type: 'text', required: true, placeholder: 'ex: Labrador, Husky, Metis...' },
+    { key: 'varsta', label: 'Vârstă', type: 'select', required: true, options: ['sub 3 luni', '3–6 luni', '6–12 luni', '1–3 ani', '3–7 ani', 'peste 7 ani'] },
+    { key: 'sex', label: 'Sex', type: 'select', required: true, options: ['Mascul', 'Femelă'] },
+    { key: 'cu_acte', label: 'Cu acte (pedigree)', type: 'select', options: ['Da', 'Nu', 'În curs'] },
+    { key: 'vaccinat', label: 'Vaccinat', type: 'select', options: ['Da', 'Nu', 'Parțial'] },
+    { key: 'castrat', label: 'Castrat/Sterilizat', type: 'select', options: ['Da', 'Nu'] },
+  ],
+  pisici: [
+    { key: 'rasa', label: 'Rasă', type: 'text', required: true, placeholder: 'ex: Persană, British Shorthair, Metisă...' },
+    { key: 'varsta', label: 'Vârstă', type: 'select', required: true, options: ['sub 3 luni', '3–6 luni', '6–12 luni', '1–3 ani', '3–8 ani', 'peste 8 ani'] },
+    { key: 'sex', label: 'Sex', type: 'select', required: true, options: ['Mascul', 'Femelă'] },
+    { key: 'cu_acte', label: 'Cu acte', type: 'select', options: ['Da', 'Nu'] },
+    { key: 'vaccinat', label: 'Vaccinat', type: 'select', options: ['Da', 'Nu', 'Parțial'] },
+    { key: 'castrat', label: 'Castrat/Sterilizat', type: 'select', options: ['Da', 'Nu'] },
+  ],
+};

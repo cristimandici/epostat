@@ -7,7 +7,8 @@ import {
   BookmarkCheck, RotateCcw, Trash2,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { CATEGORIES } from '@/lib/data';
+import Logo from '@/components/ui/Logo';
+import { CATEGORIES, SUBCATEGORIES, CATEGORY_FIELDS } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 
@@ -41,6 +42,8 @@ const SECTIONS = [
 
 interface FormData {
   category: string;
+  subcategory: string;
+  attributes: Record<string, string>;
   title: string;
   condition: string;
   description: string;
@@ -54,7 +57,7 @@ interface FormData {
 }
 
 const EMPTY_FORM: FormData = {
-  category: '', title: '', condition: '', description: '',
+  category: '', subcategory: '', attributes: {}, title: '', condition: '', description: '',
   imageFiles: [], imageUrls: [],
   price: '', negotiable: false, city: '', location: '', phone: '',
 };
@@ -128,6 +131,8 @@ function PostPageContent() {
       price: Number(f.price) || 0,
       negotiable: f.negotiable,
       category_id: f.category || null,
+      subcategory: f.subcategory || null,
+      attributes: Object.keys(f.attributes).length ? f.attributes : null,
       condition: f.condition || 'nou',
       images: f.imageUrls,
       city: f.city || null,
@@ -163,6 +168,8 @@ function PostPageContent() {
       setDraftAdId(id);
       setForm({
         category: (data.category_id as string) || '',
+        subcategory: (data.subcategory as string) || '',
+        attributes: (data.attributes as Record<string, string>) || {},
         title: (data.title as string) || '',
         condition: (data.condition as string) || '',
         description: (data.description as string) || '',
@@ -295,8 +302,15 @@ function PostPageContent() {
   };
 
   const isComplete = (s: number): boolean => {
-    if (s === 1) return !!form.category;
-    if (s === 2) return form.title.length >= 5 && !!form.condition && form.description.length >= 20;
+    if (s === 1) {
+      const hasSubs = !!(form.category && SUBCATEGORIES[form.category]?.length);
+      return !!form.category && (!hasSubs || !!form.subcategory);
+    }
+    if (s === 2) {
+      const specFields = form.subcategory ? (CATEGORY_FIELDS[form.subcategory] ?? []) : [];
+      const allSpecsFilled = specFields.every(f => !!form.attributes[f.key]?.trim());
+      return form.title.length >= 5 && !!form.condition && form.description.length >= 20 && allSpecsFilled;
+    }
     if (s === 3) return form.imageUrls.length >= 3;
     if (s === 4) return Number(form.price) > 0 && !!form.city;
     return false;
@@ -304,11 +318,18 @@ function PostPageContent() {
 
   const validateStep = (s: number): boolean => {
     const e: typeof errors = {};
-    if (s === 1 && !form.category) e.category = 'Hopa, alege o categorie 🙂';
+    if (s === 1) {
+      if (!form.category) e.category = 'Hopa, alege o categorie 🙂';
+      else if (SUBCATEGORIES[form.category]?.length && !form.subcategory) e.subcategory = 'Alege și subcategoria pentru a continua.';
+    }
     if (s === 2) {
       if (!form.title || form.title.length < 5) e.title = 'Titlul trebuie să aibă cel puțin 5 caractere.';
       if (!form.condition) e.condition = 'Selectează starea produsului.';
       if (!form.description || form.description.length < 20) e.description = 'Adaugă o descriere mai detaliată (min. 20 caractere).';
+      if (form.subcategory && CATEGORY_FIELDS[form.subcategory]) {
+        const missing = CATEGORY_FIELDS[form.subcategory].filter(f => !form.attributes[f.key]?.trim());
+        if (missing.length > 0) e.attributes = 'Completează toate specificațiile marcate.';
+      }
     }
     if (s === 3 && form.imageUrls.length < 3) e.images = 'Adaugă cel puțin 3 fotografii 📸';
     if (s === 4) {
@@ -387,6 +408,8 @@ function PostPageContent() {
       price: Number(form.price),
       negotiable: form.negotiable,
       category_id: form.category,
+      subcategory: form.subcategory || null,
+      attributes: Object.keys(form.attributes).length ? form.attributes : null,
       condition: form.condition,
       images: form.imageUrls,
       city: form.city,
@@ -565,33 +588,107 @@ function PostPageContent() {
                   {openStep === s.id && (
                     <div className="px-6 pb-6 pt-2">
 
-                      {/* Step 1: Category */}
+                      {/* Step 1: Category + Subcategory */}
                       {s.id === 1 && (
-                        <div>
-                          {errors.category && <ErrorMsg msg={errors.category} className="mb-3" />}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {CATEGORIES.map((c) => (
-                              <button
-                                key={c.id}
-                                onClick={() => { set('category', c.id); setErrors({}); }}
-                                className={cn(
-                                  'p-4 rounded-2xl border-2 text-left transition-all',
-                                  form.category === c.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                                )}
-                              >
-                                <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center mb-2.5', c.color)}>
-                                  <span className="text-lg">{CAT_ICONS[c.icon] ?? '📦'}</span>
-                                </div>
-                                <p className="font-semibold text-slate-800 text-sm">{c.name}</p>
-                              </button>
-                            ))}
+                        <div className="flex flex-col gap-5">
+                          <div>
+                            {errors.category && <ErrorMsg msg={errors.category} className="mb-3" />}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              {CATEGORIES.map((c) => (
+                                <button
+                                  key={c.id}
+                                  onClick={() => {
+                                    set('category', c.id);
+                                    set('subcategory', '');
+                                    set('attributes', {});
+                                    setErrors({});
+                                  }}
+                                  className={cn(
+                                    'p-4 rounded-2xl border-2 text-left transition-all',
+                                    form.category === c.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                  )}
+                                >
+                                  <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center mb-2.5', c.color)}>
+                                    <span className="text-lg">{CAT_ICONS[c.icon] ?? '📦'}</span>
+                                  </div>
+                                  <p className="font-semibold text-slate-800 text-sm">{c.name}</p>
+                                </button>
+                              ))}
+                            </div>
                           </div>
+
+                          {/* Subcategory picker */}
+                          {form.category && SUBCATEGORIES[form.category] && (
+                            <div>
+                              <p className="text-sm font-semibold text-slate-700 mb-2">Subcategorie <span className="text-red-400">*</span></p>
+                              {errors.subcategory && <ErrorMsg msg={errors.subcategory} className="mb-2" />}
+                              <div className="flex flex-wrap gap-2">
+                                {SUBCATEGORIES[form.category].map((sub) => (
+                                  <button
+                                    key={sub.id}
+                                    onClick={() => { set('subcategory', sub.id); set('attributes', {}); setErrors({}); }}
+                                    className={cn(
+                                      'flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-sm font-medium transition-all',
+                                      form.subcategory === sub.id
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                        : 'border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50'
+                                    )}
+                                  >
+                                    <span>{sub.icon}</span>
+                                    {sub.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
                       {/* Step 2: Details */}
                       {s.id === 2 && (
                         <div className="flex flex-col gap-5">
+
+                          {/* Dynamic category-specific fields */}
+                          {form.subcategory && CATEGORY_FIELDS[form.subcategory] && (
+                            <div className={cn('rounded-2xl border p-4 flex flex-col gap-4', errors.attributes ? 'border-red-200 bg-red-50/30' : 'border-blue-100 bg-blue-50/40')}>
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">Specificații</p>
+                                <span className="text-xs text-slate-400">Toate câmpurile sunt obligatorii</span>
+                              </div>
+                              {errors.attributes && <ErrorMsg msg={errors.attributes} />}
+                              {CATEGORY_FIELDS[form.subcategory].map((field) => {
+                                const isEmpty = errors.attributes && !form.attributes[field.key]?.trim();
+                                return (
+                                  <div key={field.key}>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                      {field.label}
+                                      {field.unit && <span className="text-slate-400 font-normal ml-1">({field.unit})</span>}
+                                      <span className="text-red-400 ml-1">*</span>
+                                    </label>
+                                    {field.type === 'select' ? (
+                                      <select
+                                        value={form.attributes[field.key] ?? ''}
+                                        onChange={e => { set('attributes', { ...form.attributes, [field.key]: e.target.value }); setErrors(p => ({ ...p, attributes: undefined })); }}
+                                        className={cn('w-full px-3 py-2.5 rounded-xl border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700', isEmpty ? 'border-red-300 ring-1 ring-red-200' : 'border-slate-200')}
+                                      >
+                                        <option value="">— Alege —</option>
+                                        {field.options!.map(o => <option key={o} value={o}>{o}</option>)}
+                                      </select>
+                                    ) : (
+                                      <input
+                                        type={field.type === 'number' ? 'number' : 'text'}
+                                        value={form.attributes[field.key] ?? ''}
+                                        onChange={e => { set('attributes', { ...form.attributes, [field.key]: e.target.value }); setErrors(p => ({ ...p, attributes: undefined })); }}
+                                        placeholder={field.placeholder ?? ''}
+                                        className={cn('w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500', isEmpty ? 'border-red-300 ring-1 ring-red-200' : 'border-slate-200')}
+                                      />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
                           <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1.5">Titlu anunț <span className="text-red-400">*</span></label>
                             <input type="text" value={form.title} onChange={(e) => { set('title', e.target.value); setErrors((p) => ({ ...p, title: undefined })); }}
@@ -890,8 +987,8 @@ function TopBar({ onLeave, onSaveDraft, hasDraft, draftSaved }: {
 }) {
   return (
     <div className="flex items-center justify-between px-6 h-14 border-b border-slate-100 shrink-0 bg-white">
-      <Link href="/" className="text-lg font-black text-slate-900 tracking-tight">
-        e<span className="text-[#2563EB]">postat</span><span className="text-slate-400 font-normal">.ro</span>
+      <Link href="/" className="flex items-center">
+        <Logo height={24} />
       </Link>
       <div className="flex items-center gap-2">
         {hasDraft && (

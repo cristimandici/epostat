@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Mail, Phone, MapPin, Heart } from 'lucide-react';
+import { Mail, MapPin, Heart } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
 export default function Footer() {
   return (
@@ -9,9 +10,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl font-black text-white tracking-tight">
-                e<span className="text-blue-400">postat</span><span className="text-slate-500 font-normal">.ro</span>
-              </span>
+              <Logo height={26} variant="light" />
             </div>
             <p className="text-sm text-slate-400 leading-relaxed mb-4">
               Piața ta online de anunțuri — simplă, rapidă și de încredere. Cumpără, vinde și negociează în câteva clicuri.

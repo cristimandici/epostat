@@ -7,7 +7,7 @@ import {
   MessageCircle, TrendingDown, ChevronLeft,
   ChevronRight, Phone, Flag, Zap, BadgeCheck,
 } from 'lucide-react';
-import { formatPrice, timeAgo, CONDITIONS, CONDITION_COLORS } from '@/lib/data';
+import { formatPrice, timeAgo, CONDITIONS, CONDITION_COLORS, CATEGORY_FIELDS, SUBCATEGORIES, CATEGORIES } from '@/lib/data';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import OfferModal from '@/components/offers/OfferModal';
@@ -26,6 +26,8 @@ function mapAd(row: Record<string, unknown>): Ad {
     price: Number(row.price),
     negotiable: row.negotiable as boolean,
     category: (row.category_id as string) || '',
+    subcategory: (row.subcategory as string) || undefined,
+    specs: (row.attributes as Record<string, string>) || undefined,
     condition: row.condition as Ad['condition'],
     description: (row.description as string) || '',
     images: (row.images as string[])?.length ? (row.images as string[]) : [PLACEHOLDER],
@@ -186,15 +188,27 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6">
-          <Link href="/" className="hover:text-blue-600 transition">Acasă</Link>
-          <ChevronRight className="w-3.5 h-3.5" />
-          <Link href="/anunturi" className="hover:text-blue-600 transition">Anunțuri</Link>
-          <ChevronRight className="w-3.5 h-3.5" />
-          <Link href={`/anunturi?cat=${ad.category}`} className="hover:text-blue-600 transition">{ad.category}</Link>
-          <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-slate-800 font-medium line-clamp-1 max-w-[200px]">{ad.title}</span>
-        </nav>
+        {(() => {
+          const catName = CATEGORIES.find(c => c.id === ad.category)?.name ?? ad.category;
+          const subName = ad.subcategory ? SUBCATEGORIES[ad.category]?.find(s => s.id === ad.subcategory)?.label : null;
+          return (
+            <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6 flex-wrap">
+              <Link href="/" className="hover:text-blue-600 transition">Acasă</Link>
+              <ChevronRight className="w-3.5 h-3.5" />
+              <Link href="/anunturi" className="hover:text-blue-600 transition">Anunțuri</Link>
+              <ChevronRight className="w-3.5 h-3.5" />
+              <Link href={`/anunturi?cat=${ad.category}`} className="hover:text-blue-600 transition">{catName}</Link>
+              {subName && (
+                <>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                  <Link href={`/anunturi?cat=${ad.category}`} className="hover:text-blue-600 transition">{subName}</Link>
+                </>
+              )}
+              <ChevronRight className="w-3.5 h-3.5" />
+              <span className="text-slate-800 font-medium line-clamp-1 max-w-[200px]">{ad.title}</span>
+            </nav>
+          );
+        })()}
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
           {/* Left column */}
@@ -244,6 +258,36 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                 </div>
               )}
             </div>
+
+            {/* Specificații */}
+            {ad.specs && ad.subcategory && CATEGORY_FIELDS[ad.subcategory] && (() => {
+              const fields = CATEGORY_FIELDS[ad.subcategory!]!;
+              const rows = fields
+                .map(f => ({ label: f.label, unit: f.unit, value: ad.specs![f.key] }))
+                .filter(r => r.value);
+              if (!rows.length) return null;
+              const subLabel = SUBCATEGORIES[ad.category]?.find(s => s.id === ad.subcategory)?.label;
+              return (
+                <div className="bg-white rounded-3xl border border-slate-200/80 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-bold text-slate-900">Specificații</h2>
+                    {subLabel && (
+                      <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">{subLabel}</span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-slate-100 rounded-2xl overflow-hidden border border-slate-100">
+                    {rows.map((r, i) => (
+                      <div key={r.label} className={cn('flex items-center justify-between px-4 py-3 bg-white', i === rows.length - 1 && rows.length % 2 === 1 && 'sm:col-span-2')}>
+                        <span className="text-sm text-slate-500">{r.label}</span>
+                        <span className="text-sm font-semibold text-slate-900">
+                          {r.value}{r.unit ? <span className="text-slate-400 font-normal ml-1">{r.unit}</span> : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Description */}
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6">

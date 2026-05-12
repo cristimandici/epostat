@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { Bell, MessageCircle, User, Menu, X, Plus, LogIn, Heart, Search } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import Logo from '@/components/ui/Logo';
 import { createClient } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import FavoritesPanel from '@/components/favorites/FavoritesPanel';
@@ -105,9 +106,7 @@ export default function Navbar() {
         <div className="flex items-center gap-3 h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center shrink-0" aria-label="epostat.ro – Acasă">
-            <span className="text-xl font-black text-slate-900 tracking-tight">
-              e<span className="text-[#2563EB]">postat</span><span className="text-slate-400 font-normal">.ro</span>
-            </span>
+            <Logo height={26} />
           </Link>
 
           {/* Search bar – desktop */}

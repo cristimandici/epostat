@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Heart, Target, Users, Zap } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
 export default function AboutPage() {
   return (
@@ -7,7 +8,7 @@ export default function AboutPage() {
       {/* Hero */}
       <div className="text-center mb-14">
         <div className="inline-flex items-center gap-2 mb-6">
-          <span className="text-3xl font-black text-slate-900">e<span className="text-[#2563EB]">postat</span><span className="text-slate-400 font-normal">.ro</span></span>
+          <Logo height={40} />
         </div>
         <h1 className="text-4xl font-black text-slate-900 mb-4">Povestea noastră</h1>
         <p className="text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed">

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import Logo from '@/components/ui/Logo';
 import { createClient } from '@/lib/supabase/client';
 
 function LoginForm() {
@@ -52,7 +53,7 @@ function LoginForm() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center">
-            <span className="text-2xl font-black text-slate-900">e<span className="text-[#2563EB]">postat</span><span className="text-slate-400 font-normal">.ro</span></span>
+            <Logo height={34} />
           </Link>
           <h1 className="text-2xl font-black text-slate-900 mt-5 mb-1">Bun venit înapoi!</h1>
           <p className="text-slate-500 text-sm">Conectează-te în contul tău</p>
