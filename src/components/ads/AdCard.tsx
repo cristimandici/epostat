@@ -57,7 +57,7 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle, trendi
         />
 
         {trending && (
-          <span className="absolute top-2 left-2 flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm text-orange-500 text-xs font-bold shadow-sm">
+          <span className="absolute top-2 left-2 flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-50/80 backdrop-blur-sm text-orange-500 text-xs font-bold shadow-sm">
             🔥 e cerut
           </span>
         )}
