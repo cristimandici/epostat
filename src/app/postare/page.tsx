@@ -564,23 +564,51 @@ function PostPageContent() {
   if (publishedId) {
     return (
       <>
-        <TopBar onLeave={handleLeave} onSaveDraft={handleSaveDraft} hasDraft={false} draftSaved={false} />
-        <div className="flex-1 flex items-center justify-center px-4">
-          <div className="max-w-lg w-full text-center py-16">
-            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-green-500" />
+        {/* Minimal header — only X, no logo */}
+        <div className="flex justify-end px-5 py-3 shrink-0">
+          <button
+            onClick={handleLeave}
+            aria-label="Închide"
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Success content */}
+        <div className="flex-1 flex items-center justify-center px-6 pb-16">
+          <div className="max-w-sm w-full text-center">
+
+            {/* Checkmark */}
+            <div className="w-[88px] h-[88px] rounded-full bg-green-100 flex items-center justify-center mx-auto mb-10">
+              <Check className="w-11 h-11 text-green-500" strokeWidth={2.5} />
             </div>
-            <h1 className="text-3xl font-black text-slate-900 mb-3">E postat! 🎉</h1>
-            <p className="text-slate-500 mb-2">Anunțul tău pentru <strong className="text-slate-800">{form.title}</strong> este acum live.</p>
-            <p className="text-slate-400 text-sm mb-8">Mii de cumpărători îl pot vedea deja.</p>
+
+            {/* Headline: "Anunțul tău e [logo]" */}
+            <div className="flex items-center justify-center gap-2.5 flex-wrap mb-5">
+              <span className="text-[1.65rem] font-black text-slate-900 leading-none">Anunțul tău e</span>
+              <Logo height={33} />
+            </div>
+
+            {/* Ad title + subtitle */}
+            <p className="text-sm font-semibold text-slate-600 bg-slate-100 inline-block px-4 py-2 rounded-full mb-2 max-w-[280px] truncate">
+              {form.title}
+            </p>
+            <p className="text-slate-400 text-sm mb-10">este acum live · Mii de cumpărători îl pot vedea deja.</p>
+
+            {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button onClick={() => router.push(`/anunturi/${publishedId}`)} variant="primary" size="lg">
                 <Sparkles className="w-4 h-4" /> Vezi anunțul
               </Button>
-              <Button onClick={() => { setForm(EMPTY_FORM); setOpenStep(1); setVisited(new Set()); setPublishedId(null); }} variant="secondary" size="lg">
+              <Button
+                onClick={() => { setForm(EMPTY_FORM); setOpenStep(1); setVisited(new Set()); setPublishedId(null); setTitleIsManual(false); }}
+                variant="secondary" size="lg"
+              >
                 Postează altul
               </Button>
             </div>
+
           </div>
         </div>
       </>
