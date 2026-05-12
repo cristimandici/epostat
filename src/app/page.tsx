@@ -93,7 +93,7 @@ function AdRow({ ads, favIds }: { ads: Ad[]; favIds: Set<string> }) {
     <>
       {/* Mobile: explicit 100vw width so scroll is self-contained, not page-level */}
       <div
-        className="sm:hidden overflow-x-scroll overscroll-x-contain hide-scrollbar pb-2"
+        className="sm:hidden overflow-x-scroll overscroll-x-contain hide-scrollbar py-3"
         style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', touchAction: 'pan-x' }}
       >
         <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
