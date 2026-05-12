@@ -9,7 +9,7 @@ import { Ad } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
-const CITIES = ['Toate orașele', 'Alba Iulia', 'Alexandria', 'Arad', 'Bacău', 'Baia Mare', 'Bistrița', 'Botoșani', 'Brăila', 'Brașov', 'București', 'Buzău', 'Călărași', 'Cluj-Napoca', 'Constanța', 'Craiova', 'Deva', 'Drobeta-Turnu Severin', 'Dej', 'Focșani', 'Galați', 'Giurgiu', 'Iași', 'Miercurea Ciuc', 'Oradea', 'Piatra Neamț', 'Pitești', 'Ploiești', 'Râmnicu Vâlcea', 'Reșița', 'Satu Mare', 'Sfântu Gheorghe', 'Sibiu', 'Slatina', 'Slobozia', 'Suceava', 'Târgu Jiu', 'Târgu Mureș', 'Târgoviște', 'Timișoara', 'Tulcea', 'Vaslui', 'Zalău', 'Ilfov'];
+const CITIES = ['Toate orașele', 'Alba Iulia', 'Alexandria', 'Arad', 'Bacău', 'Baia Mare', 'Bistrița', 'Botoșani', 'Brăila', 'Brașov', 'București', 'Buzău', 'Călărași', 'Cluj-Napoca', 'Constanța', 'Craiova', 'Deva', 'Drobeta-Turnu Severin', 'Focșani', 'Galați', 'Giurgiu', 'Iași', 'Miercurea Ciuc', 'Oradea', 'Piatra Neamț', 'Pitești', 'Ploiești', 'Râmnicu Vâlcea', 'Reșița', 'Satu Mare', 'Sfântu Gheorghe', 'Sibiu', 'Slatina', 'Slobozia', 'Suceava', 'Târgu Jiu', 'Târgu Mureș', 'Târgoviște', 'Timișoara', 'Tulcea', 'Vaslui', 'Zalău', 'Ilfov'];
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Cele mai noi' },
   { value: 'price_asc', label: 'Preț crescător' },
@@ -48,10 +48,16 @@ function mapAd(row: Record<string, unknown>): Ad {
   };
 }
 
+function urlSort(s: string | null): string {
+  if (s === 'popular' || s === 'price_asc' || s === 'price_desc') return s;
+  return 'newest';
+}
+
 function ListingsContent() {
   const searchParams = useSearchParams();
 
   const [ads, setAds] = useState<Ad[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [selectedCat, setSelectedCat] = useState(searchParams.get('cat') || '');
@@ -60,26 +66,39 @@ function ListingsContent() {
   const [priceMax, setPriceMax] = useState('');
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [negotiableOnly, setNegotiableOnly] = useState(false);
-  const [sortBy, setSortBy] = useState('newest');
+  const [sortBy, setSortBy] = useState(() => urlSort(searchParams.get('sort')));
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [favIds, setFavIds] = useState<Set<string>>(new Set());
-
-  const supabase = createClient();
+  const [catCounts, setCatCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    async function loadFavs() {
+    async function init() {
+      const supabase = createClient();
+      // Load favorites
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase.from('favorites').select('ad_id').eq('user_id', user.id);
-      setFavIds(new Set((data || []).map(f => f.ad_id as string)));
+      if (user) {
+        const { data } = await supabase.from('favorites').select('ad_id').eq('user_id', user.id);
+        setFavIds(new Set((data || []).map(f => f.ad_id as string)));
+      }
+      // Load real category counts
+      const { data: countRows } = await supabase
+        .from('ads')
+        .select('category_id')
+        .eq('status', 'activ');
+      if (countRows) {
+        const counts: Record<string, number> = {};
+        countRows.forEach(r => { if (r.category_id) counts[r.category_id] = (counts[r.category_id] || 0) + 1; });
+        setCatCounts(counts);
+      }
     }
-    loadFavs();
+    init();
   }, []);
 
   const fetchAds = useCallback(async () => {
     setLoading(true);
+    const supabase = createClient();
 
-    let q = supabase.from('ads_with_seller').select('*').eq('status', 'activ');
+    let q = supabase.from('ads').select('*').eq('status', 'activ');
 
     if (selectedCat) q = q.eq('category_id', selectedCat);
     if (selectedCity !== 'Toate orașele') q = q.eq('city', selectedCity);
@@ -91,11 +110,35 @@ function ListingsContent() {
 
     if (sortBy === 'price_asc') q = q.order('price', { ascending: true });
     else if (sortBy === 'price_desc') q = q.order('price', { ascending: false });
-    else if (sortBy === 'popular') q = q.order('views', { ascending: false });
+    else if (sortBy === 'popular') q = q.order('favorites_count', { ascending: false }).order('views', { ascending: false });
     else q = q.order('created_at', { ascending: false });
 
-    const { data } = await q.limit(60);
-    setAds((data || []).map(r => mapAd(r as Record<string, unknown>)));
+    const { data: rawAds } = await q.limit(60);
+
+    if (!rawAds || rawAds.length === 0) {
+      setAds([]);
+      setTotal(0);
+      setLoading(false);
+      return;
+    }
+
+    // Enrich with seller profiles (same pattern as homepage)
+    const sellerIds = [...new Set(rawAds.map(r => r.seller_id as string).filter(Boolean))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url, rating, review_count, verified')
+      .in('id', sellerIds);
+    const profMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+
+    setAds(rawAds.map(r => mapAd({
+      ...r,
+      seller_name: profMap[r.seller_id as string]?.name ?? 'Utilizator',
+      seller_avatar: profMap[r.seller_id as string]?.avatar_url ?? null,
+      seller_rating: profMap[r.seller_id as string]?.rating ?? 5,
+      seller_review_count: profMap[r.seller_id as string]?.review_count ?? 0,
+      seller_verified: profMap[r.seller_id as string]?.verified ?? false,
+    })));
+    setTotal(rawAds.length);
     setLoading(false);
   }, [query, selectedCat, selectedCity, priceMin, priceMax, selectedConditions, negotiableOnly, sortBy]);
 
@@ -166,8 +209,11 @@ function ListingsContent() {
                 </button>
                 {CATEGORIES.map(cat => (
                   <button key={cat.id} onClick={() => setSelectedCat(cat.id)}
-                    className={cn('text-left text-sm py-1 px-2 rounded-lg transition', selectedCat === cat.id ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:bg-slate-50')}>
-                    {cat.name}
+                    className={cn('text-left text-sm py-1.5 px-2 rounded-lg transition flex items-center justify-between', selectedCat === cat.id ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:bg-slate-50')}>
+                    <span>{cat.name}</span>
+                    {catCounts[cat.id] > 0 && (
+                      <span className="text-xs text-slate-400 font-normal">{catCounts[cat.id]}</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -216,13 +262,13 @@ function ListingsContent() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-slate-500">
-              {loading ? 'Se caută...' : <><span className="font-bold text-slate-900">{ads.length}</span> anunțuri găsite</>}
+              {loading ? 'Se caută...' : <><span className="font-bold text-slate-900">{total ?? ads.length}</span> anunțuri găsite</>}
             </p>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {[...Array(6)].map((_, i) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[...Array(8)].map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-pulse">
                   <div className="aspect-[4/3] bg-slate-200" />
                   <div className="p-3 flex flex-col gap-2">
@@ -241,7 +287,7 @@ function ListingsContent() {
               <Button variant="outline" onClick={clearFilters}>Resetează filtrele</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {ads.map(ad => <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} />)}
             </div>
           )}

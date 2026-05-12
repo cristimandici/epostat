@@ -120,6 +120,7 @@ export default function HomePage() {
   const [recommendedAds, setRecommendedAds] = useState<Ad[]>([]);
   const [favIds, setFavIds] = useState<Set<string>>(new Set());
   const [stats, setStats] = useState({ ads: 0, users: 0, offers: 0 });
+  const [catCounts, setCatCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function loadAll() {
@@ -147,6 +148,14 @@ export default function HomePage() {
       setStats({ ads: statsAds.count ?? 0, users: statsUsers.count ?? 0, offers: statsOffers.count ?? 0 });
       setPopularAds(await enrichAds(supabase, (popularRes.data || []) as Record<string, unknown>[]));
       setRecommendedAds(await enrichAds(supabase, (recommendedRes.data || []) as Record<string, unknown>[]));
+
+      // Real category counts
+      const { data: catRows } = await supabase.from('ads').select('category_id').eq('status', 'activ');
+      if (catRows) {
+        const counts: Record<string, number> = {};
+        catRows.forEach(r => { if (r.category_id) counts[r.category_id] = (counts[r.category_id] || 0) + 1; });
+        setCatCounts(counts);
+      }
 
       if (viewedIds.length > 0) {
         const { data: viewedData } = await supabase
@@ -210,7 +219,7 @@ export default function HomePage() {
               </div>
               <div className="text-center">
                 <p className="font-semibold text-slate-800 text-sm leading-tight">{cat.name}</p>
-                <p className="text-xs text-slate-400 mt-0.5">{cat.count.toLocaleString('ro-RO')} anunțuri</p>
+                <p className="text-xs text-slate-400 mt-0.5">{(catCounts[cat.id] ?? 0).toLocaleString('ro-RO')} anunțuri</p>
               </div>
             </Link>
           ))}
