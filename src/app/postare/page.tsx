@@ -4,13 +4,121 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Check, ChevronDown, AlertCircle, Upload, X, Sparkles, MapPin, ImagePlus,
-  BookmarkCheck, RotateCcw, Trash2,
+  BookmarkCheck, RotateCcw, Trash2, Pencil,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Logo from '@/components/ui/Logo';
 import { CATEGORIES, SUBCATEGORIES, CATEGORY_FIELDS } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+
+const TITLE_TEMPLATES: Record<string, (attrs: Record<string, string>) => string> = {
+  autoturisme: (a) => {
+    const parts: string[] = [];
+    if (a.marca) parts.push(a.marca);
+    if (a.model) parts.push(a.model);
+    const extra: string[] = [];
+    if (a.an) extra.push(a.an);
+    if (a.km) extra.push(`${Number(a.km).toLocaleString('ro-RO')} km`);
+    if (extra.length) parts.push(`– ${extra.join(' · ')}`);
+    return parts.join(' ');
+  },
+  motociclete: (a) => {
+    const parts: string[] = [];
+    if (a.marca) parts.push(a.marca);
+    if (a.model) parts.push(a.model);
+    const extra: string[] = [];
+    if (a.an) extra.push(a.an);
+    if (a.km) extra.push(`${Number(a.km).toLocaleString('ro-RO')} km`);
+    if (extra.length) parts.push(`– ${extra.join(' · ')}`);
+    return parts.join(' ');
+  },
+  autoutilitare: (a) => {
+    const parts: string[] = [];
+    if (a.marca) parts.push(a.marca);
+    if (a.model) parts.push(a.model);
+    const extra: string[] = [];
+    if (a.an) extra.push(a.an);
+    if (a.km) extra.push(`${Number(a.km).toLocaleString('ro-RO')} km`);
+    if (extra.length) parts.push(`– ${extra.join(' · ')}`);
+    return parts.join(' ');
+  },
+  telefoane: (a) => {
+    const parts: string[] = [];
+    if (a.marca) parts.push(a.marca);
+    if (a.model) parts.push(a.model);
+    if (a.stocare) parts.push(`– ${a.stocare}`);
+    return parts.join(' ');
+  },
+  laptopuri: (a) => {
+    const parts: string[] = [];
+    if (a.marca) parts.push(a.marca);
+    if (a.model) parts.push(a.model);
+    const specs: string[] = [];
+    if (a.ram) specs.push(`${a.ram} RAM`);
+    if (a.stocare) specs.push(a.stocare);
+    if (specs.length) parts.push(`– ${specs.join(' · ')}`);
+    return parts.join(' ');
+  },
+  apartamente: (a) => {
+    const parts: string[] = ['Apartament'];
+    if (a.nr_camere) parts.push(a.nr_camere);
+    const extra: string[] = [];
+    if (a.suprafata) extra.push(`${a.suprafata} m²`);
+    if (a.tip_tranzactie) extra.push(a.tip_tranzactie);
+    if (extra.length) parts.push(`– ${extra.join(' · ')}`);
+    return parts.join(' ');
+  },
+  garsoniere: (a) => {
+    const parts: string[] = ['Garsonieră'];
+    const extra: string[] = [];
+    if (a.suprafata) extra.push(`${a.suprafata} m²`);
+    if (a.tip_tranzactie) extra.push(a.tip_tranzactie);
+    if (extra.length) parts.push(`– ${extra.join(' · ')}`);
+    return parts.join(' ');
+  },
+  case: (a) => {
+    const parts: string[] = ['Casă'];
+    const specs: string[] = [];
+    if (a.suprafata_utila) specs.push(`${a.suprafata_utila} m²`);
+    if (a.nr_camere) specs.push(`${a.nr_camere} camere`);
+    if (specs.length) parts.push(specs.join(' · '));
+    if (a.tip_tranzactie) parts.push(`– ${a.tip_tranzactie}`);
+    return parts.join(' ');
+  },
+  terenuri: (a) => {
+    const parts: string[] = ['Teren'];
+    if (a.suprafata) parts.push(`${a.suprafata} m²`);
+    if (a.tip_teren) parts.push(`– ${a.tip_teren}`);
+    if (a.tip_tranzactie) parts.push(`– ${a.tip_tranzactie}`);
+    return parts.join(' ');
+  },
+  caini: (a) => {
+    const parts: string[] = [];
+    if (a.rasa) parts.push(a.rasa);
+    const extra: string[] = [];
+    if (a.sex) extra.push(a.sex);
+    if (a.varsta) extra.push(a.varsta);
+    if (extra.length) parts.push(`– ${extra.join(' · ')}`);
+    return parts.join(' ');
+  },
+  pisici: (a) => {
+    const parts: string[] = [];
+    if (a.rasa) parts.push(a.rasa);
+    const extra: string[] = [];
+    if (a.sex) extra.push(a.sex);
+    if (a.varsta) extra.push(a.varsta);
+    if (extra.length) parts.push(`– ${extra.join(' · ')}`);
+    return parts.join(' ');
+  },
+  biciclete: (a) => {
+    const parts: string[] = ['Bicicletă'];
+    if (a.tip) parts.push(a.tip);
+    if (a.marca) parts.push(`– ${a.marca}`);
+    if (a.marime_roata) parts.push(`– ${a.marime_roata}`);
+    return parts.join(' ');
+  },
+};
 
 const CONDITIONS = [
   { value: 'nou', label: 'Nou', desc: 'Produs sigilat, neutilizat' },
@@ -108,6 +216,17 @@ function PostPageContent() {
   const [draftBanner, setDraftBanner] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
   const [draftAdId, setDraftAdId] = useState<string | null>(null);
+  const [titleIsManual, setTitleIsManual] = useState(false);
+
+  // Auto-generate title from spec fields when not manually edited
+  useEffect(() => {
+    if (titleIsManual) return;
+    const template = TITLE_TEMPLATES[form.subcategory];
+    if (!template) return;
+    const generated = template(form.attributes).trim();
+    if (generated) setForm(p => ({ ...p, title: generated }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.subcategory, form.attributes, titleIsManual]);
 
   // Keep a ref so popstate handler always sees latest form
   const formRef = useRef(form);
@@ -181,6 +300,7 @@ function PostPageContent() {
         location: (data.location as string) || '',
         phone: '',
       });
+      if (data.title) setTitleIsManual(true);
       // Open first incomplete step
       if (!data.category_id) setOpenStep(1);
       else if (!data.title || !data.condition || !data.description) setOpenStep(2);
@@ -253,6 +373,7 @@ function PostPageContent() {
     const draft = loadDraftFromStorage();
     if (!draft) return;
     setForm({ ...EMPTY_FORM, ...draft });
+    if (draft.title) setTitleIsManual(true);
     setDraftBanner(false);
   };
 
@@ -309,7 +430,7 @@ function PostPageContent() {
     if (s === 2) {
       const specFields = form.subcategory ? (CATEGORY_FIELDS[form.subcategory] ?? []) : [];
       const allSpecsFilled = specFields.every(f => !!form.attributes[f.key]?.trim());
-      return form.title.length >= 5 && !!form.condition && form.description.length >= 20 && allSpecsFilled;
+      return form.title.length >= 20 && !!form.condition && form.description.length >= 20 && allSpecsFilled;
     }
     if (s === 3) return form.imageUrls.length >= 3;
     if (s === 4) return Number(form.price) > 0 && !!form.city;
@@ -323,7 +444,7 @@ function PostPageContent() {
       else if (SUBCATEGORIES[form.category]?.length && !form.subcategory) e.subcategory = 'Alege și subcategoria pentru a continua.';
     }
     if (s === 2) {
-      if (!form.title || form.title.length < 5) e.title = 'Titlul trebuie să aibă cel puțin 5 caractere.';
+      if (!form.title || form.title.length < 20) e.title = 'Titlul trebuie să aibă cel puțin 20 de caractere.';
       if (!form.condition) e.condition = 'Selectează starea produsului.';
       if (!form.description || form.description.length < 20) e.description = 'Adaugă o descriere mai detaliată (min. 20 caractere).';
       if (form.subcategory && CATEGORY_FIELDS[form.subcategory]) {
@@ -602,6 +723,7 @@ function PostPageContent() {
                                     set('subcategory', '');
                                     set('attributes', {});
                                     setErrors({});
+                                    setTitleIsManual(false);
                                   }}
                                   className={cn(
                                     'p-4 rounded-2xl border-2 text-left transition-all',
@@ -626,7 +748,7 @@ function PostPageContent() {
                                 {SUBCATEGORIES[form.category].map((sub) => (
                                   <button
                                     key={sub.id}
-                                    onClick={() => { set('subcategory', sub.id); set('attributes', {}); setErrors({}); }}
+                                    onClick={() => { set('subcategory', sub.id); set('attributes', {}); setErrors({}); setTitleIsManual(false); }}
                                     className={cn(
                                       'flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-sm font-medium transition-all',
                                       form.subcategory === sub.id
@@ -690,14 +812,54 @@ function PostPageContent() {
                           )}
 
                           <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Titlu anunț <span className="text-red-400">*</span></label>
-                            <input type="text" value={form.title} onChange={(e) => { set('title', e.target.value); setErrors((p) => ({ ...p, title: undefined })); }}
-                              placeholder="Ex: iPhone 14 Pro Max 256GB – Space Black, ca nou" maxLength={80}
-                              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
-                            <div className="flex justify-between mt-1">
-                              {errors.title ? <ErrorMsg msg={errors.title} /> : <span />}
-                              <span className="text-xs text-slate-400">{form.title.length}/80</span>
-                            </div>
+                            {(() => {
+                              const hasTemplate = !!TITLE_TEMPLATES[form.subcategory];
+                              const isAuto = hasTemplate && !titleIsManual;
+                              return (
+                                <>
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <label className="text-sm font-medium text-slate-700">
+                                      Titlu anunț <span className="text-red-400">*</span>
+                                    </label>
+                                    {isAuto && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setTitleIsManual(true)}
+                                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium transition"
+                                      >
+                                        <Pencil className="w-3 h-3" /> Editează
+                                      </button>
+                                    )}
+                                  </div>
+                                  {isAuto ? (
+                                    <div
+                                      onClick={() => setTitleIsManual(true)}
+                                      className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-blue-200 bg-blue-50/50 min-h-[42px] cursor-pointer hover:border-blue-300 transition"
+                                    >
+                                      <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
+                                      {form.title
+                                        ? <span className="text-sm text-slate-800 font-medium">{form.title}</span>
+                                        : <span className="text-sm text-slate-400">Se completează automat din specificații...</span>
+                                      }
+                                    </div>
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      value={form.title}
+                                      onChange={(e) => { set('title', e.target.value); setErrors(p => ({ ...p, title: undefined })); }}
+                                      placeholder="Ex: iPhone 14 Pro Max 256GB – Space Black, ca nou"
+                                      maxLength={80}
+                                      autoFocus={hasTemplate}
+                                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                                    />
+                                  )}
+                                  <div className="flex justify-between mt-1">
+                                    {errors.title ? <ErrorMsg msg={errors.title} /> : <span />}
+                                    <span className="text-xs text-slate-400">{form.title.length}/80</span>
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">Stare produs <span className="text-red-400">*</span></label>

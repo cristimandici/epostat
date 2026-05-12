@@ -603,7 +603,7 @@ export const CATEGORY_FIELDS: Record<string, CategoryField[]> = {
     { key: 'km', label: 'Kilometraj', type: 'number', unit: 'km', required: true, placeholder: 'ex: 85000' },
     { key: 'combustibil', label: 'Combustibil', type: 'select', required: true, options: ['Benzină', 'Motorină/Diesel', 'GPL', 'Electric', 'Hibrid benzină', 'Hibrid diesel'] },
     { key: 'cutie', label: 'Cutie de viteze', type: 'select', required: true, options: ['Manuală', 'Automată', 'Semi-automată (DSG/DCT)'] },
-    { key: 'capacitate', label: 'Capacitate cilindrică', type: 'select', options: ['sub 1000 cc', '1000–1400 cc', '1400–1600 cc', '1600–2000 cc', '2000–2500 cc', 'peste 2500 cc'] },
+    { key: 'capacitate', label: 'Capacitate cilindrică', type: 'select', options: ['sub 1.000 cm³', '1.000 cm³', '1.200 cm³', '1.400 cm³', '1.600 cm³', '1.800 cm³', '2.000 cm³', '2.600 cm³', '3.000 cm³', '5.000 cm³', '7.500 cm³', '8.000 cm³', '9.000 cm³', 'peste 9.000 cm³'] },
     { key: 'putere_cp', label: 'Putere (CP)', type: 'number', placeholder: 'ex: 150' },
     { key: 'nr_usi', label: 'Număr uși', type: 'select', options: ['2', '3', '4', '5'] },
     { key: 'culoare', label: 'Culoare', type: 'select', options: ['Alb', 'Negru', 'Gri', 'Argintiu', 'Albastru', 'Roșu', 'Verde', 'Maro', 'Bej', 'Galben', 'Portocaliu', 'Altă culoare'] },
