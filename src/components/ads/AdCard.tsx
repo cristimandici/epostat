@@ -58,7 +58,23 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle, trendi
 
         {trending && (
           <span className="absolute top-2 left-2 flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-50/80 backdrop-blur-sm text-orange-500 text-xs font-bold shadow-sm">
-            🔥 e cerut
+            <svg width="12" height="14" viewBox="0 0 12 14" fill="none" className="shrink-0">
+              <path
+                d="M6 13.5C3.5 13.5 1 11.8 1 9C1 6.8 2.5 5.5 3.5 4.5C3.5 5.5 4 6 4.5 6C4.5 4 5 2 6.5 0.5C6.5 2.5 7.5 3.5 8.5 4.5C9.5 5.5 11 6.8 11 9C11 11.8 8.5 13.5 6 13.5Z"
+                fill="currentColor"
+                opacity="0.15"
+              />
+              <path
+                d="M6 13C4 13 2 11.5 2 9C2 7.2 3.2 6 4 5.2C4.1 6 4.5 6.5 5 6.5C5 5 5.4 3.2 6.5 2C6.6 3.8 7.5 4.8 8.3 5.6C9.2 6.5 10 7.5 10 9C10 11.5 8 13 6 13Z"
+                fill="currentColor"
+              />
+              <path
+                d="M6 11.5C5 11.5 4 10.8 4 9.5C4 8.5 4.8 7.8 5.2 7.5C5.2 8.2 5.6 8.6 6 8.6C6 7.8 6.3 7 7 6.5C7 7.8 7.8 8.5 8 9.2C8 10.5 7 11.5 6 11.5Z"
+                fill="white"
+                opacity="0.6"
+              />
+            </svg>
+            e cerut
           </span>
         )}
         {!trending && ad.urgent && (
