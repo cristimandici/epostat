@@ -346,21 +346,32 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
 
                 {ad.status !== 'vandut' && (
                   <div className="flex flex-col gap-3">
-                    {ad.negotiable && (
-                      <Button variant="outline" size="lg" fullWidth className="gap-2" onClick={() => setOfferOpen(true)}>
-                        <TrendingDown className="w-5 h-5" /> Fă o ofertă
-                      </Button>
+                    {currentUserId === ad.seller.id ? (
+                      <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200">
+                        <BadgeCheck className="w-4 h-4 text-slate-500 shrink-0" />
+                        <p className="text-sm text-slate-600 font-medium">Acesta este anunțul tău.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {ad.negotiable && (
+                          <Button variant="outline" size="lg" fullWidth className="gap-2" onClick={() => {
+                            if (!currentUserId) { router.push(`/login?redirect=/anunturi/${id}`); return; }
+                            setOfferOpen(true);
+                          }}>
+                            <TrendingDown className="w-5 h-5" /> Fă o ofertă
+                          </Button>
+                        )}
+                        <Button variant="secondary" size="lg" fullWidth className="gap-2"
+                          onClick={async () => {
+                            if (!currentUserId) { router.push(`/login?redirect=/anunturi/${id}`); return; }
+                            const { data: convId, error } = await supabase.rpc('start_conversation', { p_ad_id: id });
+                            if (error || !convId) { addToast('Eroare la deschiderea conversației.', 'error'); return; }
+                            router.push(`/mesaje?conv=${convId}`);
+                          }}>
+                          <MessageCircle className="w-5 h-5" /> Trimite mesaj
+                        </Button>
+                      </>
                     )}
-                    <Button variant="secondary" size="lg" fullWidth className="gap-2"
-                      onClick={async () => {
-                        if (!currentUserId) { addToast('Trebuie să fii autentificat pentru a trimite mesaje.', 'error'); return; }
-                        if (currentUserId === ad.seller.id) { addToast('Nu poți trimite mesaj propriului anunț.', 'info'); return; }
-                        const { data: convId, error } = await supabase.rpc('start_conversation', { p_ad_id: id });
-                        if (error || !convId) { addToast('Eroare la deschiderea conversației.', 'error'); return; }
-                        router.push(`/mesaje?conv=${convId}`);
-                      }}>
-                      <MessageCircle className="w-5 h-5" /> Trimite mesaj
-                    </Button>
                   </div>
                 )}
 
@@ -469,7 +480,8 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
         adTitle={ad.title}
         askingPrice={ad.price}
         onSubmit={async (amount, message) => {
-          if (!currentUserId || !ad) { addToast('Trebuie să fii autentificat.', 'error'); return; }
+          if (!currentUserId || !ad) { router.push(`/login?redirect=/anunturi/${id}`); return; }
+          if (currentUserId === ad.seller.id) { addToast('Nu poți face ofertă la propriul anunț.', 'error'); return; }
           const { data: offerRow, error } = await supabase.from('offers').insert({
             ad_id: id,
             buyer_id: currentUserId,
