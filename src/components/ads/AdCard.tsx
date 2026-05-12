@@ -44,10 +44,10 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
   return (
     <Link
       href={`/anunturi/${ad.id}`}
-      className="group flex flex-col rounded-2xl bg-white overflow-hidden hover:shadow-md transition-shadow duration-200"
+      className="group flex flex-col rounded-xl ring-1 ring-transparent hover:ring-slate-200 hover:shadow-md transition-all duration-200"
     >
-      {/* Image – parent overflow:hidden + rounded-2xl clips it */}
-      <div className="relative aspect-[4/3] bg-zinc-200">
+      {/* Image */}
+      <div className="relative overflow-hidden rounded-xl aspect-[4/3] bg-zinc-200">
         <img
           src={ad.images[0]}
           alt={ad.title}
@@ -83,8 +83,8 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
         </button>
       </div>
 
-      {/* Text inside white card */}
-      <div className="px-2.5 pt-2 pb-2.5 flex flex-col flex-1">
+      {/* Text sits on page background – no white box */}
+      <div className="pt-2.5 flex flex-col flex-1">
         <h3 className="font-semibold text-slate-900 text-sm leading-snug line-clamp-2 mb-1.5">
           {ad.title}
         </h3>
@@ -103,11 +103,11 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
         <p className="text-base font-bold text-slate-900">{formatPrice(ad.price)}</p>
 
         <div className="mt-auto pt-1.5 flex items-center justify-between text-xs text-slate-400">
-          <span className="flex items-center gap-0.5 min-w-0">
+          <span className="flex items-center gap-0.5 min-w-0 mr-1">
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{ad.city}</span>
           </span>
-          <span className="flex items-center gap-0.5 shrink-0 ml-1">
+          <span className="flex items-center gap-0.5 shrink-0">
             <Clock className="w-3 h-3 shrink-0" />
             {timeAgo(ad.postedAt)}
           </span>
