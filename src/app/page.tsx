@@ -87,7 +87,7 @@ async function enrichAds(
   });
 }
 
-function AdRow({ ads, favIds }: { ads: Ad[]; favIds: Set<string> }) {
+function AdRow({ ads, favIds, trending = false }: { ads: Ad[]; favIds: Set<string>; trending?: boolean }) {
   if (ads.length === 0) return null;
   return (
     <>
@@ -99,7 +99,7 @@ function AdRow({ ads, favIds }: { ads: Ad[]; favIds: Set<string> }) {
         <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
           {ads.map(ad => (
             <div key={ad.id} style={{ width: '36vw', flexShrink: 0 }}>
-              <AdCard ad={ad} favorited={favIds.has(ad.id)} />
+              <AdCard ad={ad} favorited={favIds.has(ad.id)} trending={trending} />
             </div>
           ))}
         </div>
@@ -107,7 +107,7 @@ function AdRow({ ads, favIds }: { ads: Ad[]; favIds: Set<string> }) {
       {/* Desktop: grid */}
       <div className="hidden sm:grid grid-cols-3 lg:grid-cols-5 gap-3">
         {ads.map(ad => (
-          <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} />
+          <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} trending={trending} />
         ))}
       </div>
     </>
@@ -146,7 +146,24 @@ export default function HomePage() {
       ]);
 
       setStats({ ads: statsAds.count ?? 0, users: statsUsers.count ?? 0, offers: statsOffers.count ?? 0 });
-      setPopularAds(await enrichAds(supabase, (popularRes.data || []) as Record<string, unknown>[]));
+
+      // Trending score: views×1 + favorites×5 + offers×15
+      const popularRaw = (popularRes.data || []) as Record<string, unknown>[];
+      const popularIds = popularRaw.map(r => r.id as string);
+      const { data: offerRows } = popularIds.length > 0
+        ? await supabase.from('offers').select('ad_id').in('ad_id', popularIds)
+        : { data: [] };
+      const offerCounts: Record<string, number> = {};
+      (offerRows || []).forEach((r: { ad_id: string }) => {
+        offerCounts[r.ad_id] = (offerCounts[r.ad_id] || 0) + 1;
+      });
+      const scoredPopular = [...popularRaw].sort((a, b) => {
+        const scoreA = (a.views as number || 0) * 1 + (a.favorites_count as number || 0) * 5 + (offerCounts[a.id as string] || 0) * 15;
+        const scoreB = (b.views as number || 0) * 1 + (b.favorites_count as number || 0) * 5 + (offerCounts[b.id as string] || 0) * 15;
+        return scoreB - scoreA;
+      });
+      setPopularAds(await enrichAds(supabase, scoredPopular));
+
       setRecommendedAds(await enrichAds(supabase, (recommendedRes.data || []) as Record<string, unknown>[]));
 
       // Real category counts
@@ -239,7 +256,7 @@ export default function HomePage() {
             </Button>
           </Link>
         </div>
-        <AdRow ads={popularAds} favIds={favIds} />
+        <AdRow ads={popularAds} favIds={favIds} trending={true} />
         <div className="mt-4 sm:hidden text-center">
           <Link href="/anunturi?sort=popular" className="text-sm font-semibold text-[#2563EB] flex items-center justify-center gap-1">
             Vezi mai multe <ChevronRight className="w-4 h-4" />

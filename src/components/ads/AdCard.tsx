@@ -11,9 +11,10 @@ interface AdCardProps {
   ad: Ad;
   favorited?: boolean;
   onFavoriteToggle?: (id: string, nowFavorited: boolean) => void;
+  trending?: boolean;
 }
 
-export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCardProps) {
+export default function AdCard({ ad, favorited = false, onFavoriteToggle, trending = false }: AdCardProps) {
   const [isFav, setIsFav] = useState(favorited);
   const [favCount, setFavCount] = useState(ad.favorites ?? 0);
   const [loading, setLoading] = useState(false);
@@ -55,7 +56,12 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle }: AdCa
           loading="lazy"
         />
 
-        {ad.urgent && (
+        {trending && (
+          <span className="absolute top-2 left-2 flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm text-orange-500 text-xs font-bold shadow-sm">
+            🔥 e cerut
+          </span>
+        )}
+        {!trending && ad.urgent && (
           <span className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold shadow-sm">
             <Zap className="w-3 h-3" /> Urgent
           </span>
