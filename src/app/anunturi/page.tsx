@@ -57,6 +57,7 @@ function ListingsContent() {
   const searchParams = useSearchParams();
 
   const [ads, setAds] = useState<Ad[]>([]);
+  const [trendingAds, setTrendingAds] = useState<Ad[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState(searchParams.get('q') || '');
@@ -93,6 +94,33 @@ function ListingsContent() {
     }
     init();
   }, []);
+
+  useEffect(() => {
+    async function loadTrending() {
+      const supabase = createClient();
+      let q = supabase.from('ads')
+        .select('*')
+        .eq('status', 'activ')
+        .gt('favorites_count', 0)
+        .order('favorites_count', { ascending: false })
+        .limit(10);
+      if (selectedCat) q = q.eq('category_id', selectedCat);
+      const { data } = await q;
+      if (!data || data.length === 0) { setTrendingAds([]); return; }
+      const sellerIds = [...new Set(data.map(r => r.seller_id as string).filter(Boolean))];
+      const { data: profiles } = await supabase.from('profiles').select('id, name, avatar_url, rating, review_count, verified').in('id', sellerIds);
+      const profMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+      setTrendingAds(data.map(r => mapAd({
+        ...r,
+        seller_name: profMap[r.seller_id as string]?.name ?? 'Utilizator',
+        seller_avatar: profMap[r.seller_id as string]?.avatar_url ?? null,
+        seller_rating: profMap[r.seller_id as string]?.rating ?? 5,
+        seller_review_count: profMap[r.seller_id as string]?.review_count ?? 0,
+        seller_verified: profMap[r.seller_id as string]?.verified ?? false,
+      })));
+    }
+    loadTrending();
+  }, [selectedCat]);
 
   const fetchAds = useCallback(async () => {
     setLoading(true);
@@ -260,6 +288,31 @@ function ListingsContent() {
 
         {/* Results */}
         <div className="flex-1 min-w-0">
+          {trendingAds.length > 0 && !query.trim() && (
+            <div className="mb-6">
+              <h2 className="text-base font-black text-slate-900 mb-3">În tendință</h2>
+              {/* Mobile carousel */}
+              <div
+                className="sm:hidden -mx-4 overflow-x-scroll overscroll-x-contain hide-scrollbar py-2"
+              >
+                <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
+                  {trendingAds.map(ad => (
+                    <div key={ad.id} style={{ width: '36vw', flexShrink: 0 }}>
+                      <AdCard ad={ad} favorited={favIds.has(ad.id)} trending={true} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Desktop grid */}
+              <div className="hidden sm:grid grid-cols-3 lg:grid-cols-4 gap-3">
+                {trendingAds.map(ad => (
+                  <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} trending={true} />
+                ))}
+              </div>
+              <div className="mt-4 border-t border-slate-100" />
+            </div>
+          )}
+
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-slate-500">
               {loading ? 'Se caută...' : <><span className="font-bold text-slate-900">{total ?? ads.length}</span> anunțuri găsite</>}
