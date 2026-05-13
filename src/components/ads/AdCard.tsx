@@ -56,7 +56,7 @@ export default function AdCard({ ad, favorited = false, onFavoriteToggle, trendi
           loading="lazy"
         />
 
-        {trending && (
+        {trending && (ad.favorites ?? 0) >= 1 && (
           <span className="absolute top-2 left-2 flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-50/80 backdrop-blur-sm text-orange-500 text-xs font-bold shadow-sm">
             <svg width="12" height="14" viewBox="0 0 12 14" fill="none" className="shrink-0">
               <path
