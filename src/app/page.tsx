@@ -90,11 +90,27 @@ async function enrichAds(
 function AdRow({ ads, favIds, trending = false }: { ads: Ad[]; favIds: Set<string>; trending?: boolean }) {
   if (ads.length === 0) return null;
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-      {ads.map(ad => (
-        <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} trending={trending} />
-      ))}
-    </div>
+    <>
+      {/* Mobile: horizontal carousel */}
+      <div
+        className="sm:hidden overflow-x-scroll overscroll-x-contain hide-scrollbar py-3"
+        style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}
+      >
+        <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
+          {ads.map(ad => (
+            <div key={ad.id} style={{ width: '36vw', flexShrink: 0 }}>
+              <AdCard ad={ad} favorited={favIds.has(ad.id)} trending={trending} />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Desktop: grid */}
+      <div className="hidden sm:grid grid-cols-3 lg:grid-cols-5 gap-3">
+        {ads.map(ad => (
+          <AdCard key={ad.id} ad={ad} favorited={favIds.has(ad.id)} trending={trending} />
+        ))}
+      </div>
+    </>
   );
 }
 
