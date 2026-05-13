@@ -251,6 +251,7 @@ export default function HomePage() {
       </section>
 
       {/* Popular / In tendinta */}
+      {popularAds.length >= 3 && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-10">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -270,6 +271,7 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+      )}
 
       {/* Recently viewed – only shown after user has browsed ads */}
       {recentlyViewedAds.length > 0 && (
