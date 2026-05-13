@@ -136,7 +136,7 @@ export default function HomePage() {
         supabase.from('ads').select('*').eq('status', 'activ')
           .order('favorites_count', { ascending: false })
           .order('views', { ascending: false })
-          .limit(10),
+          .limit(30),
         supabase.from('ads').select('*').eq('status', 'activ')
           .order('created_at', { ascending: false })
           .limit(30),
@@ -158,13 +158,16 @@ export default function HomePage() {
       (offerRows || []).forEach((r: { ad_id: string }) => {
         offerCounts[r.ad_id] = (offerCounts[r.ad_id] || 0) + 1;
       });
-      const scoredPopular = [...popularRaw].sort((a, b) => {
-        const offA = offerCounts[a.id as string] || 0;
-        const offB = offerCounts[b.id as string] || 0;
-        if (offB !== offA) return offB - offA;
-        return ((b.favorites_count as number || 0) * 5 + (b.views as number || 0)) -
-               ((a.favorites_count as number || 0) * 5 + (a.views as number || 0));
-      });
+      const scoredPopular = [...popularRaw]
+        .filter(r => (r.favorites_count as number || 0) >= 1 && (offerCounts[r.id as string] || 0) >= 1)
+        .sort((a, b) => {
+          const offA = offerCounts[a.id as string] || 0;
+          const offB = offerCounts[b.id as string] || 0;
+          if (offB !== offA) return offB - offA;
+          return ((b.favorites_count as number || 0) * 5 + (b.views as number || 0)) -
+                 ((a.favorites_count as number || 0) * 5 + (a.views as number || 0));
+        })
+        .slice(0, 10);
       const popularWithOffers = scoredPopular.map(r => ({ ...r, offer_count: offerCounts[r.id as string] || 0 }));
       setPopularAds(await enrichAds(supabase, popularWithOffers));
 
