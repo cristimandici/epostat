@@ -33,6 +33,7 @@ function mapAd(row: Record<string, unknown>): Ad {
     postedAt: row.created_at as string,
     views: (row.views as number) || 0,
     favorites: (row.favorites_count as number) || 0,
+    offersCount: (row.offer_count as number) || 0,
     status: row.status as Ad['status'],
     urgent: (row.urgent as boolean) || false,
     seller: {
@@ -103,15 +104,26 @@ function ListingsContent() {
         .eq('status', 'activ')
         .gt('favorites_count', 0)
         .order('favorites_count', { ascending: false })
-        .limit(10);
+        .limit(20);
       if (selectedCat) q = q.eq('category_id', selectedCat);
       const { data } = await q;
       if (!data || data.length === 0) { setTrendingAds([]); return; }
-      const sellerIds = [...new Set(data.map(r => r.seller_id as string).filter(Boolean))];
+
+      // Filter to ads that also have at least 1 offer
+      const ids = data.map(r => r.id as string);
+      const { data: offerRows } = await supabase.from('offers').select('ad_id').in('ad_id', ids);
+      const withOffers = new Set((offerRows || []).map(r => r.ad_id as string));
+      const offerCounts: Record<string, number> = {};
+      (offerRows || []).forEach((r: { ad_id: string }) => { offerCounts[r.ad_id] = (offerCounts[r.ad_id] || 0) + 1; });
+      const qualified = data.filter(r => withOffers.has(r.id as string)).slice(0, 10);
+      if (qualified.length === 0) { setTrendingAds([]); return; }
+
+      const sellerIds = [...new Set(qualified.map(r => r.seller_id as string).filter(Boolean))];
       const { data: profiles } = await supabase.from('profiles').select('id, name, avatar_url, rating, review_count, verified').in('id', sellerIds);
       const profMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
-      setTrendingAds(data.map(r => mapAd({
+      setTrendingAds(qualified.map(r => mapAd({
         ...r,
+        offer_count: offerCounts[r.id as string] || 0,
         seller_name: profMap[r.seller_id as string]?.name ?? 'Utilizator',
         seller_avatar: profMap[r.seller_id as string]?.avatar_url ?? null,
         seller_rating: profMap[r.seller_id as string]?.rating ?? 5,
