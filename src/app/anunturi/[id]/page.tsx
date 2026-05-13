@@ -63,6 +63,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
   const [currentImg, setCurrentImg] = useState(0);
   const [offerOpen, setOfferOpen] = useState(false);
   const [isFav, setIsFav] = useState(false);
+  const [offerCount, setOfferCount] = useState(0);
   const [favLoading, setFavLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -102,6 +103,13 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
 
       const mapped = mapAd(combined as Record<string, unknown>);
       setAd(mapped);
+
+      // Fetch offer count for demand indicator
+      const { count: oc } = await supabase
+        .from('offers')
+        .select('id', { count: 'exact', head: true })
+        .eq('ad_id', id);
+      setOfferCount(oc ?? 0);
 
       // Track recently viewed (for homepage section)
       try {
@@ -343,6 +351,18 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
                     </p>
                   )}
                 </div>
+
+                {ad.favorites >= 1 && offerCount >= 1 && (
+                  <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-orange-50 border border-orange-100 mt-2">
+                    <svg width="14" height="16" viewBox="0 0 12 14" fill="none" className="shrink-0 text-orange-500">
+                      <path d="M6 13.5C3.5 13.5 1 11.8 1 9C1 6.8 2.5 5.5 3.5 4.5C3.5 5.5 4 6 4.5 6C4.5 4 5 2 6.5 0.5C6.5 2.5 7.5 3.5 8.5 4.5C9.5 5.5 11 6.8 11 9C11 11.8 8.5 13.5 6 13.5Z" fill="currentColor" opacity="0.15"/>
+                      <path d="M6 13C4 13 2 11.5 2 9C2 7.2 3.2 6 4 5.2C4.1 6 4.5 6.5 5 6.5C5 5 5.4 3.2 6.5 2C6.6 3.8 7.5 4.8 8.3 5.6C9.2 6.5 10 7.5 10 9C10 11.5 8 13 6 13Z" fill="currentColor"/>
+                    </svg>
+                    <p className="text-sm text-orange-600 font-semibold">
+                      e cerut! {offerCount === 1 ? 'Un cumpărător a făcut o ofertă.' : `${offerCount} cumpărători au făcut oferte.`}
+                    </p>
+                  </div>
+                )}
 
                 {ad.status !== 'vandut' && (
                   <div className="flex flex-col gap-3">
