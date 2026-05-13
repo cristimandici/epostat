@@ -300,7 +300,7 @@ function ListingsContent() {
 
         {/* Results */}
         <div className="flex-1 min-w-0">
-          {trendingAds.length >= 3 && !query.trim() && (
+          {trendingAds.length >= 1 && !query.trim() && (
             <div className="mb-6">
               <h2 className="text-base font-black text-slate-900 mb-3">În tendință</h2>
               {/* Mobile carousel */}
