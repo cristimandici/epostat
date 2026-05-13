@@ -30,6 +30,7 @@ export interface Ad {
   postedAt: string;
   views: number;
   favorites: number;
+  offersCount?: number;
   status: AdStatus;
   seller: User;
   specs?: Record<string, string>;
