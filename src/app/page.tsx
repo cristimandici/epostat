@@ -29,6 +29,7 @@ function mapAd(row: Record<string, unknown>): Ad {
     postedAt: row.created_at as string,
     views: (row.views as number) || 0,
     favorites: (row.favorites_count as number) || 0,
+    offersCount: (row.offer_count as number) || 0,
     status: row.status as Ad['status'],
     urgent: (row.urgent as boolean) || false,
     seller: {
@@ -158,11 +159,14 @@ export default function HomePage() {
         offerCounts[r.ad_id] = (offerCounts[r.ad_id] || 0) + 1;
       });
       const scoredPopular = [...popularRaw].sort((a, b) => {
-        const scoreA = (a.views as number || 0) * 1 + (a.favorites_count as number || 0) * 5 + (offerCounts[a.id as string] || 0) * 15;
-        const scoreB = (b.views as number || 0) * 1 + (b.favorites_count as number || 0) * 5 + (offerCounts[b.id as string] || 0) * 15;
-        return scoreB - scoreA;
+        const offA = offerCounts[a.id as string] || 0;
+        const offB = offerCounts[b.id as string] || 0;
+        if (offB !== offA) return offB - offA;
+        return ((b.favorites_count as number || 0) * 5 + (b.views as number || 0)) -
+               ((a.favorites_count as number || 0) * 5 + (a.views as number || 0));
       });
-      setPopularAds(await enrichAds(supabase, scoredPopular));
+      const popularWithOffers = scoredPopular.map(r => ({ ...r, offer_count: offerCounts[r.id as string] || 0 }));
+      setPopularAds(await enrichAds(supabase, popularWithOffers));
 
       setRecommendedAds(await enrichAds(supabase, (recommendedRes.data || []) as Record<string, unknown>[]));
 
