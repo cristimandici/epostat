@@ -117,6 +117,9 @@ export default function Navbar() {
             />
           </div>
 
+          {/* Spacer – pushes nav icons to the right on mobile */}
+          <div className="flex-1 md:hidden" />
+
           {/* Nav icons */}
           <div className="flex items-center gap-1 shrink-0">
             {isLoggedIn ? (
