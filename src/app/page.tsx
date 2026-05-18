@@ -159,7 +159,7 @@ export default function HomePage() {
         offerCounts[r.ad_id] = (offerCounts[r.ad_id] || 0) + 1;
       });
       const scoredPopular = [...popularRaw]
-        .filter(r => (r.favorites_count as number || 0) >= 1 && (offerCounts[r.id as string] || 0) >= 1)
+        .filter(r => (r.favorites_count as number || 0) >= 1)
         .sort((a, b) => {
           const offA = offerCounts[a.id as string] || 0;
           const offB = offerCounts[b.id as string] || 0;
