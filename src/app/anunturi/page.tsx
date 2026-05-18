@@ -109,14 +109,12 @@ function ListingsContent() {
       const { data } = await q;
       if (!data || data.length === 0) { setTrendingAds([]); return; }
 
-      // Filter to ads that also have at least 1 offer
+      // Fetch offer counts to populate offersCount on each card (for badge)
       const ids = data.map(r => r.id as string);
       const { data: offerRows } = await supabase.from('offers').select('ad_id').in('ad_id', ids);
-      const withOffers = new Set((offerRows || []).map(r => r.ad_id as string));
       const offerCounts: Record<string, number> = {};
       (offerRows || []).forEach((r: { ad_id: string }) => { offerCounts[r.ad_id] = (offerCounts[r.ad_id] || 0) + 1; });
-      const qualified = data.filter(r => withOffers.has(r.id as string)).slice(0, 10);
-      if (qualified.length === 0) { setTrendingAds([]); return; }
+      const qualified = data.slice(0, 10);
 
       const sellerIds = [...new Set(qualified.map(r => r.seller_id as string).filter(Boolean))];
       const { data: profiles } = await supabase.from('profiles').select('id, name, avatar_url, rating, review_count, verified').in('id', sellerIds);
